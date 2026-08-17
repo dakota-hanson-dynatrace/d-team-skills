@@ -1,0 +1,12 @@
+{
+  "name": "se-skills",
+  "version": "1.0.0",
+  "description": "Dynatrace SE team skills for Claude Code",
+  "author": {
+    "name": "Dynatrace SE Team",
+    "url": "https://github.com/dynatrace/d-team-skills"
+  },
+  "repository": "https://github.com/dynatrace/d-team-skills",
+  "license": "UNLICENSED",
+  "keywords": ["dynatrace", "se", "skills", "observability"]
+}

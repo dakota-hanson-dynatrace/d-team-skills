@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "d-team-skills",
+  "description": "Dynatrace SE team skills for Claude Code",
+  "owner": {
+    "name": "Dynatrace SE Team",
+    "url": "https://github.com/dynatrace/d-team-skills"
+  },
+  "plugins": [
+    {
+      "name": "se-skills",
+      "description": "SE team skill bundle: value roadmap generation, AppEngine UI patterns, IAM debugging, dashboard variables, upgrade readiness assessment, and branded PowerPoint generation.",
+      "source": "./plugins/se-skills"
+    }
+  ]
+}
