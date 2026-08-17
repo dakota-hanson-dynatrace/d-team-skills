@@ -10,7 +10,7 @@
     {
       "name": "se-skills",
       "description": "SE team skill bundle: value roadmap generation, AppEngine UI patterns, IAM debugging, dashboard variables, upgrade readiness assessment, and branded PowerPoint generation.",
-      "source": "./plugins/se-skills"
+      "source": "./"
     }
   ]
 }

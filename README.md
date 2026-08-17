@@ -9,15 +9,14 @@ Skills in this repo are installed as a Claude Code plugin bundle. Once installed
 ## Quick Install
 
 ```bash
-claude plugin marketplace add dynatrace/d-team-skills
-claude plugin install d-team-skills/se-skills
+claude plugin marketplace add dakota-hanson-dynatrace/d-team-skills
 ```
 
-That's it. Restart Claude Code and the skills are active.
+That's it. The plugin installs automatically when the marketplace is added. Restart Claude Code and the skills are active.
 
 **To update after new skills are merged:**
 ```bash
-claude plugin update
+claude plugin marketplace refresh d-team-skills
 ```
 
 **Prerequisites:** Claude Code CLI and Git LFS (for the PowerPoint assets).
@@ -55,10 +54,10 @@ cd d-team-skills
 git checkout -b skill/my-new-skill
 ```
 
-2. Create your skill directory inside the plugin:
+2. Create your skill directory:
 
 ```bash
-mkdir -p plugins/se-skills/skills/my-skill-name
+mkdir -p skills/my-skill-name
 ```
 
 3. Write your `SKILL.md`:
@@ -84,17 +83,18 @@ Step-by-step instructions for Claude to follow.
 4. Add any supporting files alongside `SKILL.md`:
 
 ```
-skills/my-skill-name/
-├── SKILL.md
-├── references/      <- reference docs, query libraries, API notes
-└── scripts/         <- helper scripts Claude can invoke
+skills/
+└── my-skill-name/
+    ├── SKILL.md
+    ├── references/      <- reference docs, query libraries, API notes
+    └── scripts/         <- helper scripts Claude can invoke
 ```
 
 5. Test it locally before opening a PR:
 
 ```bash
 # Symlink your WIP skill into ~/.claude/skills/ for live testing
-ln -s $(pwd)/plugins/se-skills/skills/my-skill-name ~/.claude/skills/my-skill-name
+ln -s $(pwd)/skills/my-skill-name ~/.claude/skills/my-skill-name
 
 # Open Claude Code and trigger your skill
 # Remove the symlink when done
@@ -147,14 +147,11 @@ Add `argument-hint` to the frontmatter. User types `/skill-name <their input>`; 
 ```
 d-team-skills/
 ├── .claude-plugin/
-│   └── marketplace.json       <- Claude marketplace registration
-├── plugins/
-│   └── se-skills/
-│       ├── .claude-plugin/
-│       │   └── plugin.json    <- plugin metadata and version
-│       └── skills/
-│           └── <skill-name>/
-│               └── SKILL.md   <- required per skill
+│   ├── marketplace.json       <- Claude marketplace registration
+│   └── plugin.json            <- plugin metadata and version
+├── skills/
+│   └── <skill-name>/
+│       └── SKILL.md           <- required per skill
 ├── .gitattributes             <- Git LFS rules for binary assets
 └── README.md
 ```
