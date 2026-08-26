@@ -162,12 +162,15 @@ const slide = pptx.addSlide();
 slide.background = { data: assetB64('dt_content_bg.png'), type: 'png' };
 slide.addImage({ data: assetB64('dt_logo.svg'), type: 'svg', x: 0.3, y: 0.2, w: 1.0, h: 0.33 });
 slide.addText('Slide Title', {
-  x: 0.5, y: 0.7, w: 12.3, h: 0.7,
+  // h=1.0, not 0.7 — a 26pt bold title that wraps to 2 lines (long titles with
+  // a "Scope - " or "Opportunity X of Y - " prefix routinely do) needs the room.
+  x: 0.5, y: 0.7, w: 12.3, h: 1.0,
   fontSize: 26, bold: true, color: 'FFFFFF', fontFace: 'DT Flow', align: 'left'
 });
-// Teal accent line under title
+// Teal accent line under title — y=1.6, not 1.35. A 2-line title's second
+// line renders to roughly y=1.5; 1.35 draws the bar straight through it.
 slide.addShape(pptx.ShapeType.rect, {
-  x: 0.5, y: 1.35, w: 12.3, h: 0.03, fill: { color: '4AC2B3' }
+  x: 0.5, y: 1.6, w: 12.3, h: 0.03, fill: { color: '4AC2B3' }
 });
 ```
 
@@ -186,6 +189,7 @@ Before delivering any DT deck, verify:
 - [ ] No generic blue (#0070C0 etc.) — use DT palette only
 - [ ] Gradient used at least once (Purple→Violet→Magenta) for a decorative element
 - [ ] Text boxes sized with enough height for wrapped content — open in PowerPoint and scan for overflows
+- [ ] Slide titles that can wrap to 2 lines (long text, or a "{Scope} - " prefix) use title box h=1.0" and accent bar y=1.6", not the 1-line defaults (h=0.7"/y=1.35") — else the bar cuts through the wrapped second line
 - [ ] Punctuation hyphens have spaces on both sides (` - `) including across split Python strings
 
 ---
@@ -269,15 +273,29 @@ open('dt_logo_navy.svg', 'w').write(svg)
 ```
 
 ### Content card geometry (gap card pattern)
-Verified layout that avoids body/next-step overlap at 17pt body text:
+Verified layout that avoids body/next-step overlap at 17pt body text. Starts at
+y=1.75" — below the slide title (y=0.7", h=1.0") and its accent bar (y=1.6"),
+per the title/accent-bar fix above:
 ```
-badge:     x=0.5",  y=1.55",  w=1.3",   h=0.28"   ← 1.3" min for "START HERE"
-title:     x+1.45", y=1.55",  w=10.8",  h=0.65"   ← 0.65" for 2-line bold title
+badge:     x=0.5",  y=1.75",  w=1.3",   h=0.28"   ← 1.3" min for "START HERE"
+title:     x+1.45", y=1.75",  w=10.8",  h=0.65"   ← 0.65" for 2-line bold title
 body:      x+0.3",  y+0.75",  w=11.6",  h=2.8"
-next box:  x=0.5",  y+3.8",   w=12.3",  h=1.4"    ← ends at 6.75" within 7.5" slide
+next box:  x=0.5",  y+3.8",   w=12.3",  h=1.4"    ← ends at 6.95" within 7.5" slide
 label:     x+0.15", y+3.85",  w=2.4",   h=0.35"
 fix text:  x+0.15", y+4.23",  w=12.0",  h=0.9"
 ```
+
+### Title / accent-bar overlap on long or prefixed titles
+A 26pt bold title box sized for one line (h=0.7", accent bar at y=1.35") looks
+fine until the title text gets longer — e.g. a "{Scope} · {Section}" prefix
+tacked on for a multi-part deck. Once the title wraps to 2 lines, the second
+line renders past the declared box height (python-pptx/pptxgenjs don't clip
+or shrink text to fit) and the accent bar cuts straight through it. Size the
+title box for the 2-line case up front (h=1.0", accent bar at y=1.6") rather
+than discovering the overlap after adding a longer title later — this cost a
+real revision on the PPL value-roadmap deck. Everything below the accent bar
+(stat cards, content cards, roadmap tables) shifts down to match; see the
+Content card geometry block above for the resulting y-values.
 
 ### Punctuation hyphens
 Use ` - ` (space on both sides) for em-dash replacements. Watch split-string concatenation: `'text -'` + `'word'` renders as `text -word` — add trailing space to the first string: `'text - '`.
