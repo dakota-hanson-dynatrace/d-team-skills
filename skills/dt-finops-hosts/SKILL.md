@@ -17,7 +17,7 @@ skill assumes.
 
 ```bash
 dtctl auth status --plain     # confirm context + token are live
-dtctl query "fetch dt.entity.host | limit 1" -o json --plain   # smoke test
+dtctl query 'smartscapeNodes "HOST" | limit 1' -o json --plain   # smoke test
 ```
 
 Any safety level works (`readonly` is enough — nothing here writes). Required scopes are
@@ -27,21 +27,26 @@ you need.
 
 ## Core query
 
-`monitoringMode` (`FULL_STACK` / `INFRASTRUCTURE` / `DISCOVERY`) lives on `dt.entity.host`,
-not on `smartscapeNodes "HOST"` — and `smartscapeNodes "PROCESS"` has no `dt.smartscape.host`
-field to join on, only `host.name`. Cost center, host group, and memory live on
-`smartscapeNodes "HOST"`. So the query joins across all three, using `toString(id)` on both
-sides of the monitoringMode lookup (raw `id` types don't match across sources) and `host.name`
-for the process join:
+Monitoring mode does not live on `smartscapeNodes "HOST"` itself — it lives on
+`smartscapeNodes "ONEAGENT"`, joined to the host via `references[monitors.host]`. This
+mirrors the lookup the Dynatrace I&O app's own Explorer view uses internally, and is
+preferred over the older `fetch dt.entity.host` (an event-lookback view of entities *seen*
+in the query window, not live topology, per dtctl's own query-context warning) — staying
+entirely on Smartscape keeps this a live-topology query. `smartscapeNodes "PROCESS"` still
+has no direct join key besides `host.name` for the process-count join.
 
 ```dql
 smartscapeNodes "HOST"
 | fieldsAdd host_name = name, host_id_str = toString(id),
     memory_gib = round(toDouble(memory) / 1024 / 1024 / 1024, decimals: 1)
 | lookup [
-    fetch dt.entity.host
-    | fieldsAdd monitoringMode, host_id_str = toString(id)
-  ], sourceField: host_id_str, lookupField: host_id_str
+    smartscapeNodes "ONEAGENT"
+    | fieldsAdd monitoringMode = coalesce(
+          if(dt.smartscape_source.sender == "dynatrace_codemodule", "APP_ONLY"),
+          if(isNotNull(dt.agent.monitoring_mode), dt.agent.monitoring_mode),
+          "OTHER"),
+        host_ref = toString(references[monitors.host][0])
+  ], sourceField: host_id_str, lookupField: host_ref
 | fieldsAdd monitoringMode = lookup.monitoringMode
 | filter monitoringMode == "FULL_STACK"
 | lookup [
@@ -53,6 +58,10 @@ smartscapeNodes "HOST"
 | fields host_name, dt.host_group.id, dt.cost.costcenter, process_count, memory_gib
 | sort host_name
 ```
+
+**Gotcha:** access joined fields with dot notation (`lookup.monitoringMode`), not bracket
+notation (`lookup[monitoringMode]`) — the bracket form silently returns `null` for every
+row instead of erroring, which is easy to miss.
 
 **RAM totals / savings variant:** swap the last two lines for a `summarize` to get the
 aggregate RAM currently billed at FullStack rates that would move to Infra-only:
