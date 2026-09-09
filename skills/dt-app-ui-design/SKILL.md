@@ -229,6 +229,21 @@ Rules:
 - **`DataTable`** (from `@dynatrace/strato-components-preview/tables`): use when the table stands alone. Gives sorting, row actions, empty state, and accessibility for free.
 - **CSS Grid rows**: use only when row heights must align pixel-precisely with an adjacent visualization panel (e.g., a side-by-side Smartscape graph where each row maps to a graph node).
 
+**`DataTable` column widths — use `fr`, not px, with `fullWidth`:**
+
+A column's `width` accepts a plain pixel number, a fraction string (`` `${number}fr` ``), `'auto'`, or `'content'`. With `fullWidth` set on the table, plain px-number widths are **not** stretched to fill the container — the grid just leaves the remainder as blank space past the last column. Give every column an `'Nfr'` width instead, sized proportionally to what the px widths would've been (a column that would've been 260px becomes `'26fr'`, one that would've been 90px becomes `'9fr'`), so the full set of columns always fills the available width:
+
+```tsx
+columns={[
+  { id: 'name', header: 'Host', accessor: 'name', width: '26fr' as const },
+  { id: 'cpu', header: 'CPU', accessor: 'cpuPct', width: '14fr' as const, cell: ({ value }) => <UsageCell value={Number(value)} /> },
+]}
+```
+
+Gotcha: in an array mixing column-def object literals of different shapes (some with `cell`, some without), TypeScript widens `width: '26fr'` to plain `string`, which then fails against `DataTableColumnDef`'s `` `${number}fr` `` union — add `as const` to every fr-width literal to keep it narrow. This specific error only surfaces during the real `dt-app build` / `dt-app deploy` compile step; a standalone `tsc -p ui/tsconfig.json --noEmit` run did not catch it. Don't treat a table page as done until it's actually built or deployed, not just type-checked in isolation.
+
+Also: an accessor for a flat row key that contains a literal dot (e.g. a DQL field like `'k8s.node.name'`) must be a function — `(r) => r['k8s.node.name']` — not the bare string `'k8s.node.name'`. A dotted string accessor gets split into a nested object path (`row.k8s.node.name`), which is `undefined` on a flat row whose key literally contains dots, and renders a blank cell instead of erroring.
+
 CSS Grid row pattern — when alignment with a visualization is required:
 
 ```tsx
