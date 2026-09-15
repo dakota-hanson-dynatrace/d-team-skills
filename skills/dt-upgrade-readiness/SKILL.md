@@ -1,3 +1,15 @@
+---
+name: dt-upgrade-readiness
+description: >
+  Assess a Dynatrace tenant's readiness to migrate off Classic (Gen2) onto the latest
+  Dynatrace (Gen3). Runs ~90 bundled readiness checks directly against the tenant via
+  dtctl (Log Classic, OpenPipeline, classic entity model, IAM/RBAC, service detection,
+  cloud integrations, ActiveGate/network, Synthetic, DEM, App Security, classic apps),
+  ranks blockers by impact, and generates a self-contained HTML report. Read-only.
+  Triggers: "upgrade readiness", "Gen2 to Gen3", "Gen3 migration", "ready to upgrade",
+  "migrate off classic", "upgrade blockers", "what's blocking the upgrade".
+---
+
 # Dynatrace Gen2 → Gen3 Upgrade Readiness
 
 Diagnose a tenant's readiness to migrate off Classic (Gen2) onto the latest
