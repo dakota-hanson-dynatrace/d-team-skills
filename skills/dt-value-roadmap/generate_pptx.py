@@ -3,7 +3,7 @@
 dt-value-roadmap: Dynatrace Value Roadmap deck generator.
 Usage: python3 generate_pptx.py --customer NAME --tenant URL --data data.json [--output FILE]
 """
-import argparse, json, os, shutil, subprocess, datetime
+import argparse, json, os, shutil, subprocess, datetime, sys
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
 from pptx.dml.color import RGBColor
@@ -62,27 +62,28 @@ OPPORTUNITIES = [
     },
     {
         'key': 'log_monitoring',
-        'trigger': lambda d: d.get('log_records_24h', 0) == 0 and d.get('hosts', 0) > 0,
+        'trigger': lambda d: (d.get('log_records_24h', 0) == 0 and d.get('hosts', 0) > 0) or d.get('highlight_logs', False),
         'priority': 'Start Here',
-        'slide_title': 'Log Monitoring Is One Setting Away',
-        'card_title':  '{hosts} fully instrumented hosts are ready to stream logs - OneAgent just needs log monitoring enabled',
-        'next_bullet': 'Enable log monitoring - OneAgent is already deployed on all {hosts} hosts, one setting to flip',
+        'slide_title': 'Grail Logs - The Fastest Path to Root Cause Across {hosts} Hosts',
+        'card_title':  '{hosts} instrumented hosts are streaming logs to Grail - trace-to-log correlation and DQL analytics unlock immediate RCA speed',
+        'next_bullet': 'Maximize log value - {hosts} hosts streaming to Grail; enable log-trace correlation and DQL analytics',
         'body': (
-            'OneAgent is already running on every host and capturing traces. '
-            'The same agent can forward system event logs, access logs, and application logs to Dynatrace Grail '
-            'with no new infrastructure and no additional deployment.\n\n'
-            'Today, when a trace shows an error or slowdown, engineers must manually search log files. '
-            'Once enabled, log context appears inline alongside traces - the same DQL query '
-            'that shows a slow span also shows the log lines that explain why.\n\n'
-            'This is the highest-leverage single action available: one setting, all {hosts} hosts, immediate RCA impact.'
+            '{customer} already has log monitoring active across {hosts} hosts and {cloud_k8s_clusters} Kubernetes clusters. '
+            'Every system event, application log, and access log is flowing into Grail - the same data store as traces and metrics.\n\n'
+            'The step most teams miss is connecting that data. In Grail, a single DQL query spans logs and traces together: '
+            'find the slow span, jump directly to the log lines that explain why - no context switching, no separate log tool, '
+            'no manual correlation by timestamp.\n\n'
+            'With {hosts} hosts and distributed workloads, the gap between "problem detected" and "root cause identified" '
+            'is almost always a log that an engineer has to find by hand. That gap closes when log context is inline with traces.'
         ),
         'fix': (
-            'Enable OneAgent log monitoring in Settings > Log Monitoring. '
-            'Configure log sources for the relevant channels (system event logs, web server access logs, application logs). '
-            'No new infrastructure required - all logs become queryable alongside traces via DQL.'
+            'Activate log-trace correlation in Settings > Log Monitoring > Log enrichment. '
+            'Configure log buckets to separate retention tiers by criticality. '
+            'Create log metrics on error patterns to drive SLO burn alerts. '
+            'Use DQL to build log-based dashboards alongside existing trace and infrastructure views.'
         ),
-        'roadmap_action': 'Enable OneAgent log monitoring across all {hosts} hosts',
-        'roadmap_value':  'Closes RCA blind spot; enables log - trace correlation across all instrumented hosts',
+        'roadmap_action': 'Activate log-trace correlation; configure log buckets and log-based alerting',
+        'roadmap_value':  'Collapses RCA time by surfacing log context inline with traces across all {hosts} instrumented hosts',
     },
     {
         'key': 'cloud_extension',
@@ -93,28 +94,28 @@ OPPORTUNITIES = [
             d.get('cloud_workloads_exist', False)
         ),
         'priority': 'Start Here',
-        'slide_title': 'Extend Observability to {cloud_providers_in_use} as Workloads Move to Cloud',
-        'card_title':  'The same OneAgent covering on-prem hosts extends to {cloud_providers_in_use} VMs with no changes to tooling',
-        'next_bullet': 'Extend to {cloud_providers_in_use} - connect the subscription before cloud footprint grows further',
+        'slide_title': 'Extend Observability to {cloud_providers_in_use} and VMware Across the Full Estate',
+        'card_title':  'The same OneAgent covering on-prem hosts extends to {cloud_providers_in_use} and VMware with no changes to tooling',
+        'next_bullet': 'Extend to {cloud_providers_in_use} and VMware - connect both before the unmonitored footprint grows further',
         'body': (
-            '{customer} runs a hybrid estate and is actively moving workloads to {cloud_providers_in_use}. '
-            'The OneAgent deployment model that already covers every on-prem host works identically '
-            'on cloud VMs - same agent, same configuration, same DQL queries, unified topology.\n\n'
-            'For workloads that run as PaaS services, Dynatrace\'s native cloud integration pulls metrics '
-            'and events directly from the cloud provider\'s monitoring APIs without requiring an agent. '
-            'Both paths feed into the same Grail data set alongside on-prem data.\n\n'
-            'Getting observability in place before migration completes is significantly easier than '
-            'retrofitting after. Each workload that moves to cloud without monitoring creates a new blind spot '
-            'in an estate that is otherwise well-covered.'
+            '{customer} is moving workloads to {cloud_providers_in_use}. The OneAgent model already covering '
+            'on-prem hosts extends identically to {cloud_providers_in_use} VMs, and through the same '
+            'ActiveGate, to VMware vSphere.\n\n'
+            'That matters for the Discovery & Coverage app too: it can only report full-estate coverage for '
+            'what it can see, and today that stops at OneAgent-reported hosts. {cloud_providers_in_use} and '
+            'VMware topology closes those blind spots.\n\n'
+            'Two points worth flagging: this adds to the log volume already flowing into Grail, and its tags '
+            'and topology are exactly what trace enrichment runs on - spans inherit that context '
+            'automatically, no manual rules to write.'
         ),
         'fix': (
-            'Connect the cloud subscription via Settings > Cloud and Virtualization > {cloud_providers_in_use}. '
-            'Deploy OneAgent to cloud VMs using the same method as on-prem hosts. '
-            'Enable container and Kubernetes monitoring if those workloads are part of the migration. '
-            'Establish an environment and workload tagging standard before the cloud footprint grows further.'
+            'Connect the cloud subscription via Settings > Cloud and Virtualization > {cloud_providers_in_use}, '
+            'and vCenter via the VMware integration on the same ActiveGate. Deploy OneAgent to cloud and '
+            'VMware VMs the same way as on-prem hosts. Establish a tagging standard, then confirm the '
+            'estate-wide number in Discovery & Coverage.'
         ),
-        'roadmap_action': 'Connect {cloud_providers_in_use} subscription; extend OneAgent to cloud VMs and PaaS services',
-        'roadmap_value':  'Unified on-prem and cloud topology as workloads migrate to {cloud_providers_in_use}',
+        'roadmap_action': 'Connect {cloud_providers_in_use} and VMware; extend OneAgent and Discovery & Coverage visibility estate-wide',
+        'roadmap_value':  'Full-estate coverage in Discovery & Coverage, added log volume, and automatic trace enrichment from cloud/VMware topology',
     },
     {
         'key': 'slos',
@@ -224,14 +225,14 @@ OPPORTUNITIES = [
         'card_title':  '{synthetic_monitors} monitors are active - an audit typically finds QA mixed with prod and coverage gaps on key flows',
         'next_bullet': 'Clean up {synthetic_monitors} synthetic monitors - remove duplicates, separate QA from prod',
         'body': (
-            '{customer} has {synthetic_monitors} synthetic monitors running. At this scale, '
-            'without a naming convention and environment separation strategy, monitors tend to accumulate duplicates '
-            'and mix QA and production measurements into the same alerting baseline.\n\n'
+            '{customer} has {synthetic_monitors} synthetic monitors running. Without a naming convention '
+            'and environment separation, they tend to accumulate duplicates and mix QA with production in '
+            'the same alerting baseline.\n\n'
             'Common patterns to look for:\n\n'
             '  ▸  Same endpoint monitored from multiple monitors with no clear ownership\n'
-            '  ▸  QA environment monitors sharing alerting profiles with production monitors\n'
+            '  ▸  QA monitors sharing alerting profiles with production monitors\n'
             '  ▸  Business-critical user flows with no synthetic coverage\n\n'
-            'A one-hour audit typically results in fewer, better-targeted monitors that produce more reliable alerts.'
+            'A one-hour audit typically results in fewer, better-targeted monitors with more reliable alerts.'
         ),
         'fix': (
             'Audit all {synthetic_monitors} monitors: (1) Delete or consolidate duplicates covering the same endpoint. '
@@ -240,6 +241,33 @@ OPPORTUNITIES = [
         ),
         'roadmap_action': 'Audit and consolidate {synthetic_monitors} synthetic monitors; separate QA from prod',
         'roadmap_value':  'Cleaner alerting baseline; synthetic coverage on critical user flows',
+    },
+    {
+        'key': 'tagging_strategy',
+        'trigger': lambda d: d.get('highlight_tagging', False),
+        'priority': 'Phase 2',
+        'slide_title': 'Establish a Consistent Tagging Strategy Across the Full Estate',
+        'card_title':  'One tag taxonomy, applied everywhere - {cloud_providers_in_use} resources can inherit it automatically, the rest of the estate needs it applied directly',
+        'next_bullet': 'Standardize tags estate-wide - {cloud_providers_in_use} can inherit automatically, on-prem needs the same taxonomy applied directly',
+        'body': (
+            '{customer} runs a meaningful footprint outside {cloud_providers_in_use} too. A tagging strategy '
+            'that only covers cloud resources leaves the larger non-cloud estate untagged - defeating the '
+            'point of having a taxonomy at all.\n\n'
+            'For the {cloud_providers_in_use} portion, Dynatrace\'s cloud integration imports resource tags '
+            'directly as Dynatrace tags at monitoring-configuration time - whatever convention exists there '
+            'is inherited automatically, no re-tagging required.\n\n'
+            'The taxonomy - environment, application/owner, cost center - has to be defined once and applied '
+            'everywhere: inherited automatically for {cloud_providers_in_use}, applied via OneAgent host '
+            'tagging rules for everything else.'
+        ),
+        'fix': (
+            'Define one tag taxonomy up front: environment, application/owner, cost center. Apply it as '
+            'native {cloud_providers_in_use} tags and enable automatic tag import in Settings > Cloud and '
+            'Virtualization > {cloud_providers_in_use}. Apply the same taxonomy elsewhere via OneAgent host '
+            'tagging rules so no part of the estate is left out.'
+        ),
+        'roadmap_action': 'Define one estate-wide tag taxonomy - auto-import for {cloud_providers_in_use}, tagging rules for everything else',
+        'roadmap_value':  'Consistent environment/owner/cost-center metadata across on-prem and {cloud_providers_in_use} alike, not just the cloud portion of the estate',
     },
 ]
 
@@ -270,7 +298,7 @@ def bg(slide, image='dt_content_bg.png'):
     slide.shapes._spTree.remove(pic._element)
     slide.shapes._spTree.insert(2, pic._element)
 
-def title_accent(slide, y=Inches(1.35)):
+def title_accent(slide, y=Inches(1.6)):
     bar = slide.shapes.add_shape(1, Inches(0.5), y, Inches(12.3), Pt(2.5))
     bar.fill.solid(); bar.fill.fore_color.rgb = TEAL; bar.line.fill.background()
 
@@ -302,7 +330,9 @@ def add_badge(slide, label, color, x, y):
     run.font.color.rgb = WHITE; run.font.name = 'DT Flow'
 
 def slide_title(slide, text):
-    add_text(slide, text, Inches(0.5), Inches(0.55), Inches(12.3), Inches(0.7),
+    # Box is tall enough for a title that wraps to 2 lines (long "Scope - Title"
+    # strings do); title_accent's y already accounts for that worst case.
+    add_text(slide, text, Inches(0.5), Inches(0.55), Inches(12.3), Inches(1.0),
              size=26, bold=True, color=WHITE, font='DT Flow')
     title_accent(slide)
 
@@ -316,8 +346,24 @@ def stat_card(slide, big, label, x, y):
     add_text(slide, label, x, y + Inches(0.95), w, Inches(0.55),
              size=15, color=GREY, align=PP_ALIGN.CENTER)
 
+def _estimate_wrapped_lines(text, chars_per_line=105):
+    """ponytail: line-count heuristic, not real text measurement (upgrade to PIL font
+    metrics if this keeps mis-firing). Splits on '\\n' so short bullet lines - forced
+    onto their own line regardless of length - count as 1 line each rather than being
+    hidden by a low total character count; that's the gap that let a bulleted body
+    through undetected on the PPL deck."""
+    return sum(1 if not seg else -(-len(seg) // chars_per_line) for seg in text.split('\n'))
+
 def gap_card(slide, title, body, badge_label, badge_color, fix,
-             x=Inches(0.5), y=Inches(1.55)):
+             x=Inches(0.5), y=Inches(1.75)):
+    # The body textbox auto-fits to content (spAutoFit) and the "Your Next Step" box
+    # below it sits at a fixed offset, so a body that wraps to too many lines visually
+    # overlaps it. 10 wrapped lines is the longest confirmed to render clean at 17pt
+    # in the 11.6"-wide box.
+    lines = _estimate_wrapped_lines(body)
+    if lines > 10:
+        print(f'WARNING: gap_card body est. {lines} wrapped lines (>10) - may overlap '
+              f'the "Your Next Step" box below it. Title: {title[:60]!r}', file=sys.stderr)
     add_badge(slide, badge_label, badge_color, x, y)
     add_text(slide, title, x + Inches(1.45), y, Inches(10.8), Inches(0.65),
              size=19, bold=True, color=WHITE, font='DT Flow')
@@ -340,7 +386,7 @@ def roadmap_table(slide, rows):
     for c in cols[:-1]:
         col_x.append(col_x[-1] + Inches(c))
     row_h = Inches(0.65)
-    y     = Inches(1.55)
+    y     = Inches(1.75)
     for hdr, cw, cx in zip(headers, cols, col_x):
         box = slide.shapes.add_shape(1, cx, y, Inches(cw), row_h)
         box.fill.solid(); box.fill.fore_color.rgb = TEAL; box.line.fill.background()
@@ -443,12 +489,12 @@ def build(data, customer, tenant, output):
     slide_title(s, 'Current State at a Glance')
     cards = data.get('stat_cards') or _auto_stat_cards(data)
     for (big, label), x in zip(cards[:4], [Inches(0.5), Inches(3.35), Inches(6.2), Inches(9.05)]):
-        stat_card(s, big, label, x, Inches(1.7))
-    add_text(s, 'WHERE YOU GO NEXT', Inches(0.5), Inches(3.65), Inches(12.3), Inches(0.35),
+        stat_card(s, big, label, x, Inches(1.9))
+    add_text(s, 'WHERE YOU GO NEXT', Inches(0.5), Inches(3.85), Inches(12.3), Inches(0.35),
              size=15, bold=True, color=TEAL)
     for i, opp in enumerate(active[:6]):
         add_text(s, f'→  {fmt(opp["next_bullet"], data)}',
-                 Inches(0.5), Inches(4.05) + Inches(0.42) * i,
+                 Inches(0.5), Inches(4.25) + Inches(0.42) * i,
                  Inches(12.3), Inches(0.38), size=16, color=TIER_COLOR[opp['priority']])
 
     # Next Steps divider

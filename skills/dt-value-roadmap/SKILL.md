@@ -26,14 +26,47 @@ and presents 3-8 prioritized next steps to unlock more platform value.
 
 ## Workflow
 
-### Step 1 - Gather inputs
+### Step 1 - Permissions check
+
+Before gathering inputs, confirm the authenticated context has access to every data source the skill needs. Run all of the following commands against the target context. A successful response is any result (including an empty array `[#0]:` or `count()=0`) - only a 403/auth error is a failure. Do not proceed to Step 2 until all pass.
+
+Replace `<ctx>` with the dtctl context name the user provides, or omit `--context <ctx>` if using the active context.
+
+```bash
+# Entities
+dtctl query 'fetch dt.entity.host | summarize count()' --context <ctx> --plain -o toon
+dtctl query 'fetch dt.entity.service | summarize count()' --context <ctx> --plain -o toon
+dtctl query 'fetch dt.entity.kubernetes_cluster | summarize count()' --context <ctx> --plain -o toon
+dtctl query 'fetch dt.entity.synthetic_test | summarize count()' --context <ctx> --plain -o toon
+dtctl query 'fetch dt.entity.http_check | summarize count()' --context <ctx> --plain -o toon
+
+# Events, logs, metrics
+dtctl query 'fetch events, from:now()-7d | filter event.category == "PROBLEM" | filter event.kind == "DAVIS_PROBLEM" | summarize count()' --context <ctx> --plain -o toon
+dtctl query 'fetch logs, from:now()-24h | limit 1 | summarize count()' --context <ctx> --plain -o toon
+dtctl query 'timeseries val=sum(dt.service.request.count), from:now()-24h | fields totalRequests=arraySum(val)' --context <ctx> --plain -o toon
+dtctl query 'fetch user.events, from:now()-24h | limit 1 | summarize count()' --context <ctx> --plain -o toon
+
+# Settings and resources
+dtctl get slos --context <ctx> --plain -o toon
+dtctl get workflows --context <ctx> --plain -o toon
+dtctl get settings --schema=builtin:rum.web.app-detection --context <ctx> --plain -o toon
+dtctl get settings --schema=builtin:alerting.profile --context <ctx> --plain -o toon
+dtctl get settings --schema=builtin:problem.notifications --context <ctx> --plain -o toon
+dtctl get settings --schema=builtin:hyperscaler-authentication.connections.azure --context <ctx> --plain -o toon
+dtctl get settings --schema=builtin:hyperscaler-authentication.connections.aws --context <ctx> --plain -o toon
+dtctl get settings --schema=builtin:hyperscaler-authentication.connections.gcp --context <ctx> --plain -o toon
+```
+
+Report any failures to the user with the specific scope/permission missing before continuing. If all pass, proceed.
+
+### Step 2 - Gather inputs
 
 Ask the SE (if not already known):
 1. Customer name (display name for the deck title)
 2. dtctl context name for the tenant
 3. Cloud posture: which providers (Azure, AWS, GCP) does the customer use for workloads? Are any already connected in Dynatrace?
 
-### Step 2 - Collect data
+### Step 3 - Collect data
 
 Run the queries from `references/queries.md` against the tenant. Build a `data.json` with this schema:
 
@@ -74,7 +107,7 @@ If the SE wants custom cards, add:
   ]
 ```
 
-### Step 3 - Generate the deck
+### Step 4 - Generate the deck
 
 ```bash
 /usr/local/bin/python3.11 ~/.claude/skills/dt-value-roadmap/generate_pptx.py \
@@ -84,7 +117,7 @@ If the SE wants custom cards, add:
   --output ~/Desktop/Acme_Value_Roadmap.pptx
 ```
 
-### Step 4 - Review
+### Step 5 - Review
 
 Report the output path and the active opportunities that fired. Ask the SE if any priorities need to be adjusted before delivering.
 
@@ -117,22 +150,28 @@ See `references/queries.md` for full queries with gotchas. Quick commands:
 
 ```bash
 # Hosts
-dtctl dql 'fetch dt.entity.host | summarize count()'
+dtctl query 'fetch dt.entity.host | summarize count()'
 
-# Services
-dtctl dql 'fetch dt.entity.service | summarize count()'
+# Services (total)
+dtctl query 'fetch dt.entity.service | summarize count()'
 
 # DB services (run after service count to calculate db_service_pct)
-dtctl dql 'fetch dt.entity.service | filter serviceType == "DATABASE_SERVICE" | summarize count()'
+dtctl query 'fetch dt.entity.service | filter serviceType == "DATABASE_SERVICE" | summarize count()'
+
+# Traces/requests last 24h
+dtctl query 'timeseries val=sum(dt.service.request.count), from:now()-24h | fields totalRequests=arraySum(val)'
 
 # Problems last 7 days
-dtctl dql 'fetch events | filter event.category == "PROBLEM" | filter timestamp >= now() - 7d | summarize count()'
+dtctl query 'fetch events, from:now()-7d | filter event.category == "PROBLEM" | filter event.kind == "DAVIS_PROBLEM" | summarize count()'
 
 # Alerting profiles
-dtctl get alerting-profiles
+dtctl get settings --schema=builtin:alerting.profile
+
+# Classic notification channels
+dtctl get settings --schema=builtin:problem.notifications
 
 # Log records in last 24h (0 = log monitoring not enabled)
-dtctl dql 'fetch logs, from: now() - 24h | limit 1 | summarize count()'
+dtctl query 'fetch logs, from:now()-24h | limit 1 | summarize count()'
 
 # SLOs
 dtctl get slos
@@ -144,15 +183,19 @@ dtctl get workflows
 dtctl get settings --schema=builtin:rum.web.app-detection
 
 # Grail RUM active? (returns 0 if not active)
-dtctl dql 'fetch user.events, from: now() - 24h | limit 1 | summarize count()'
+dtctl query 'fetch user.events, from:now()-24h | limit 1 | summarize count()'
 
-# Synthetic monitors
-dtctl get synthetic-monitors
+# Synthetic monitors (sum both results)
+dtctl query 'fetch dt.entity.synthetic_test | summarize count()'   # browser/clickpath
+dtctl query 'fetch dt.entity.http_check | summarize count()'       # HTTP monitors
 
-# Cloud integrations
-dtctl get settings --schema=builtin:cloud.azure
-dtctl get settings --schema=builtin:cloud.aws
-dtctl get settings --schema=builtin:cloud.gcp
+# Kubernetes clusters
+dtctl query 'fetch dt.entity.kubernetes_cluster | summarize count()'
+
+# Cloud integrations (check enabled field on returned items)
+dtctl get settings --schema=builtin:hyperscaler-authentication.connections.azure
+dtctl get settings --schema=builtin:hyperscaler-authentication.connections.aws
+dtctl get settings --schema=builtin:hyperscaler-authentication.connections.gcp
 ```
 
 ---
