@@ -43,6 +43,9 @@ brew install git-lfs   # macOS
 | **dt-upgrade-readiness** | "upgrade readiness", "Gen3 migration", "classic to Grail" | Assesses a tenant's readiness to migrate from Dynatrace Gen2 (Classic) to Gen3. Runs readiness checks via dtctl, produces a self-contained HTML report. |
 | **dt-value-roadmap** | "value roadmap", "gap analysis", "account review", "health check" | Generates a branded customer-facing PowerPoint. Collects live data from a tenant via dtctl/DQL, scores it against an opportunity library, and builds a prioritized roadmap deck. |
 | **dynatrace-pptx-skill** | "create a presentation", "build a deck", "DT slides" | Builds PowerPoint decks using the official Dynatrace 2026 brand template. Provides color constants, font specs, layout patterns, and python-pptx gotchas. Required by `dt-value-roadmap`. |
+| **claude-usage-review** | "review my claude usage", "optimize my claude token usage", "where am I wasting tokens" | Digests your local Claude Code session transcripts (bash+jq, zero model tokens) into skill-candidate and token-reduction suggestions. Designed to run on a weekly schedule via launchd/cron. |
+| **kubectl-pod-debug** | "kubectl", "exec into a pod", "tail pod logs", "wait for rollout" | Live kubectl debugging idioms: resolve a pod by label then log/exec it (with the readiness/sort-order gotcha fixed), `kubectl wait` instead of hand-rolled sleep-poll loops, and setting a default namespace context. Not for Dynatrace K8s telemetry — see `dt-finops-hosts`-style DQL skills for that. |
+| **gh-pr-workflow** | "open a PR", "merge this PR", "self-merge", "gh pr create" | The create → check → merge → confirm `gh` CLI cycle for opening and self-merging a PR end to end, including the mergeable/mergeStateStatus check before merging and the post-merge confirmation habit. |
 
 ---
 
