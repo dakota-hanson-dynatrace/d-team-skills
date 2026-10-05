@@ -46,6 +46,11 @@ dtctl get dashboard <id> -o json --plain
 #   dynatrace.quickstart.usage-overview          unitsOverrides
 ```
 
+When no built-in reference exists for a visualization (geo maps, below), the only
+reliable move is to set the color manually in the dashboard UI, then `dtctl get`
+to see the shape the UI actually wrote — two independent schema guesses round-tripped
+clean here and were both silently ignored by the renderer before that step settled it.
+
 ## singleValue
 
 ```yaml
@@ -175,6 +180,51 @@ Grail data:
 `h: 1` gives a slim banner; `w: 24` spans a full section divider, `w: 6` makes a
 per-column header. Note `thresholds` sits at `visualizationSettings.thresholds`, a
 **sibling** of `coloring`, not inside it.
+
+## Geographic maps
+
+Coloring `dotMap`/`bubbleMap` points by a categorical field (e.g. a `status` field
+with values `Healthy`/`Degraded`/`Critical`) does **not** use either of the shapes
+that work elsewhere — both looked like plausible generalizations and both were
+wrong in a way that only surfaced by manually fixing it in the UI and re-downloading:
+
+- `visualizationSettings.coloring.colorRules` (the pattern from singleValue/areaChart
+  above) — accepted by `apply`, but **stripped from storage entirely** on the next
+  `dtctl get`. It doesn't even round-trip; the key is just gone.
+- `visualizationSettings.colorModeType` with a `customCategoryColors` dict and
+  `colorCategoryMode: "multi-color"` or `"custom"` (the pattern categorical charts
+  document) — this one **does** round-trip intact, which looks like success, but the
+  map ignores it and falls back to auto-assigned palette colors (blue/grey/green by
+  first-seen category order). Storage surviving `apply` proved nothing.
+
+The real shape, confirmed by setting the color in the dashboard UI and re-downloading:
+
+```yaml
+visualizationSettings:
+  dataMapping:
+    latitude: lat
+    longitude: lon
+    dimension: status       # the "Color value" field from tiles.md — no separate colorValue key
+    displayedFields: [site, type, status]
+  colorModeType:
+    colorMode: custom-colors        # not colorCategoryMode; not "custom" or "multi-color"
+    categoricalCustomColors:        # an ARRAY, not a dict keyed by category value
+      - id: 76899.5                 # unique per rule — UI writes large pseudo-random floats, any unique number works
+        value: "Healthy"
+        comparator: "="
+        color: { Default: "var(--dt-colors-charts-apdex-excellent-default, #2a7453)" }
+      - id: 88294.3
+        value: "Degraded"
+        comparator: "="
+        color: { Default: "var(--dt-colors-charts-apdex-fair-default, #a9780f)" }
+      - id: 93299.4
+        value: "Critical"
+        comparator: "="
+        color: { Default: "var(--dt-colors-charts-loglevel-emergency-default, #ae132d)" }
+```
+
+Not yet confirmed for `choroplethMap`/`connectionMap` — re-derive from a UI export
+rather than assuming this shape transfers to them.
 
 ## Unit overrides
 
