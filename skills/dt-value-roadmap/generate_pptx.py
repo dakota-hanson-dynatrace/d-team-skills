@@ -24,8 +24,11 @@ PURPLE     = RGBColor(0x5E, 0x29, 0xE5)
 MAGENTA    = RGBColor(0xC9, 0x3F, 0xDB)
 LIGHT_NAVY = RGBColor(0x17, 0x20, 0x36)
 
-TIER_COLOR = {'Start Here': RED, 'High Value': ORANGE, 'Phase 2': BLUE}
+TIER_COLOR = {'Coverage': TEAL, 'Anomaly': PURPLE,
+              'Start Here': RED, 'High Value': ORANGE, 'Phase 2': BLUE}
 TIER_BG    = {
+    'Coverage':   RGBColor(0x0E, 0x22, 0x20),
+    'Anomaly':    RGBColor(0x18, 0x10, 0x2A),
     'Start Here': RGBColor(0x2A, 0x14, 0x14),
     'High Value': RGBColor(0x2A, 0x1E, 0x10),
     'Phase 2':    RGBColor(0x10, 0x1E, 0x2A),
@@ -35,6 +38,142 @@ TIER_BG    = {
 # Each entry: trigger(data)->bool, priority, and format strings keyed {variable}.
 # All format strings are rendered with data.format(**data) at build time.
 OPPORTUNITIES = [
+    {
+        'key': 'oneagent_coverage',
+        'trigger': lambda d: d.get('oneagent_fullstack_pct', 100) < 80 or d.get('hosts_infra', 0) > 0,
+        'priority': 'Coverage',
+        'slide_title': 'Close the OneAgent Coverage Gap - {oneagent_fullstack_pct}% FullStack Today',
+        'card_title':  '{hosts_fullstack} of {hosts_total} hosts are FullStack ({oneagent_fullstack_pct}%) - {hosts_infra} are Infra-only or undiscovered',
+        'next_bullet': 'Close the OneAgent gap - {oneagent_fullstack_pct}% FullStack across {hosts_total} hosts',
+        'body': (
+            '{customer} has {hosts_fullstack} of {hosts_total} hosts at FullStack depth ({oneagent_fullstack_pct}%). '
+            '{hosts_infra} hosts are Infra-only - visible in topology, but without process, service, or trace-level '
+            'depth.\n\n'
+            'This matters most right now because the newly-enabled cloud and VMware integrations only report what '
+            'they can see: an integration can discover a VM, but discovery is not the same as deep monitoring. '
+            'A host with no OneAgent at all will not even appear in this count.\n\n'
+            'Closing this gap is the single highest-leverage step toward full-estate visibility - everything else '
+            'in this deck builds on the data FullStack coverage produces.'
+        ),
+        'fix': (
+            'Use the Discovery & Coverage app to find hosts with no OneAgent, then deploy it the same way as '
+            'the rest of the estate. For hosts already at Infra-only, upgrade to FullStack where process- and '
+            'service-level depth is needed. Re-run this check after deployment to confirm the percentage moved.'
+        ),
+        'roadmap_action': 'Deploy/upgrade OneAgent to FullStack on the {hosts_infra} Infra-only hosts',
+        'roadmap_value':  'Moves FullStack coverage from {oneagent_fullstack_pct}% toward full-estate visibility',
+    },
+    {
+        'key': 'log_enablement',
+        'trigger': lambda d: d.get('pg_with_logs_pct', 100) < 70 or (
+            d.get('log_records_24h', 0) == 0 and d.get('hosts', 0) > 0),
+        'priority': 'Coverage',
+        'slide_title': 'Extend Log Ingestion - {pg_with_logs_pct}% of Process Groups Covered',
+        'card_title':  '{pg_with_logs_pct}% of process groups are streaming logs to Grail - the rest are a blind spot during incidents',
+        'next_bullet': 'Extend log coverage - {pg_with_logs_pct}% of process groups streaming today',
+        'body': (
+            '{pg_with_logs_pct}% of process groups across {customer}\'s estate are sending logs to Grail. '
+            'The remainder have no log visibility at all - when something fails there, root cause has to be '
+            'found without the data that explains it.\n\n'
+            'This is a coverage gap, not a configuration problem: OneAgent already handles log forwarding '
+            'automatically once it is deployed and log monitoring is enabled on the host.'
+        ),
+        'fix': (
+            'Identify the process groups missing from log coverage and confirm log monitoring is enabled on '
+            'their hosts (Settings > Log Monitoring). Prioritize production-critical services first.'
+        ),
+        'roadmap_action': 'Enable log monitoring on process groups outside the current {pg_with_logs_pct}% coverage',
+        'roadmap_value':  'Root cause data available for the full estate, not just the covered subset',
+    },
+    {
+        'key': 'log_to_trace',
+        'trigger': lambda d: d.get('log_to_trace_pct', 100) < 50,
+        'priority': 'Coverage',
+        'slide_title': 'Enable Log-to-Trace Correlation - Only {log_to_trace_pct}% of Logs Are Linked',
+        'card_title':  '{log_to_trace_pct}% of log lines carry a trace ID - the rest cost an engineer a manual timestamp correlation',
+        'next_bullet': 'Link logs to traces - {log_to_trace_pct}% correlated today',
+        'body': (
+            'Only {log_to_trace_pct}% of {customer}\'s log volume carries a trace ID. For the rest, finding '
+            'the log line that explains a slow or failed span means searching by timestamp and hostname by '
+            'hand instead of jumping there directly from the trace.\n\n'
+            'Log-to-trace correlation is an OneAgent enrichment setting, not a re-instrumentation - most gaps '
+            'come from hosts or log sources that predate enrichment being turned on.'
+        ),
+        'fix': (
+            'Enable log-trace correlation under Settings > Log Monitoring > Log enrichment for the sources '
+            'currently missing trace IDs. Verify with a DQL query joining logs to spans on the enriched subset.'
+        ),
+        'roadmap_action': 'Enable log-trace correlation for the {log_to_trace_pct}%-uncorrelated log volume',
+        'roadmap_value':  'Collapses RCA time by making every log line one click from its trace',
+    },
+    {
+        'key': 'cloud_coverage_gaps',
+        'trigger': lambda d: d.get('cloud_integration_live', False) and (
+            d.get('cloud_hosts_without_oneagent', 0) > 0 or d.get('cloud_services_without_logs', 0) > 0),
+        'priority': 'Coverage',
+        'slide_title': '{cloud_providers_in_use} Is Connected - Now Close the Depth Gap',
+        'card_title':  '{cloud_providers_in_use} integration is live and discovering resources - {cloud_hosts_without_oneagent} VMs and {cloud_services_without_logs} services still lack full depth',
+        'next_bullet': 'Deepen {cloud_providers_in_use} coverage - discovery is live, depth is not yet full',
+        'body': (
+            '{customer} has {cloud_providers_in_use} connected and discovering resources - that is the '
+            'integration working as intended. The gap now is depth: {cloud_hosts_without_oneagent} discovered '
+            'VMs have no OneAgent, and {cloud_services_without_logs} services have no log data.\n\n'
+            'Discovery tells you a resource exists. OneAgent and log monitoring tell you how it is behaving. '
+            'Closing this gap is what turns the new integration into something that surfaces real problems, '
+            'not just a topology map.'
+        ),
+        'fix': (
+            'Deploy OneAgent to the discovered VMs still without it, using the same rollout pattern as on-prem. '
+            'Enable log monitoring on the services still without log data. Re-run Discovery & Coverage after '
+            'to confirm the depth gap closed.'
+        ),
+        'roadmap_action': 'Deploy OneAgent/logs to the {cloud_providers_in_use} resources discovered but not yet deep-monitored',
+        'roadmap_value':  'Converts {cloud_providers_in_use} discovery into full-depth monitoring, not just a topology map',
+    },
+    {
+        'key': 'vmware_coverage',
+        'trigger': lambda d: d.get('vmware_ext_present', False) and d.get('vmware_hosts', 0) > 0,
+        'priority': 'Coverage',
+        'slide_title': 'VMware Extension Is Live - {vmware_hosts} Hosts Under Hypervisor Monitoring',
+        'card_title':  '{vmware_hosts} hosts are running on VMware with extension telemetry flowing - vSphere/ESXi context is now part of root cause analysis',
+        'next_bullet': 'Build on VMware telemetry - {vmware_hosts} hosts now visible at the hypervisor layer',
+        'body': (
+            'The VMware extension is live: {vmware_hosts} of {customer}\'s hosts are now visible at the '
+            'hypervisor layer, not just the guest OS. That closes a common blind spot - a guest-level slowdown '
+            'that is actually host contention, noisy-neighbor CPU ready time, or datastore latency upstream.\n\n'
+            'This data is most valuable correlated with what OneAgent already reports on the guest, so a single '
+            'investigation spans both layers.'
+        ),
+        'fix': (
+            'Cross-reference VMware host/datastore metrics against guest-level OneAgent data during the next '
+            'performance investigation to confirm the correlation path works end to end. Add vSphere cluster '
+            'and datastore saturation to existing infrastructure dashboards.'
+        ),
+        'roadmap_action': 'Correlate VMware hypervisor telemetry with guest-level OneAgent data in RCA workflows',
+        'roadmap_value':  'Hypervisor-layer context (CPU ready time, datastore latency) available for the {vmware_hosts} hosts it affects',
+    },
+    {
+        'key': 'vmware_data_gap',
+        'trigger': lambda d: not d.get('vmware_ext_present', False) and d.get('vmware_ext_intentional') is False,
+        'priority': 'Anomaly',
+        'slide_title': 'VMware Extension Data Not Found',
+        'card_title':  'No VMware extension metrics were found during collection, and this was flagged as unintentional - treat this as an open gap, not a clean bill of health',
+        'next_bullet': 'Resolve VMware data gap - extension metrics were expected but not found',
+        'body': (
+            'This review could not find VMware extension telemetry (vSphere/ESXi entities or metrics) for '
+            '{customer}, and the SE running this review confirmed that absence was not intentional.\n\n'
+            'Every other finding in this deck that depends on VMware coverage is based on incomplete data - '
+            'there may be hypervisor-layer issues (datastore latency, CPU contention) this review simply '
+            'cannot see yet.'
+        ),
+        'fix': (
+            'Confirm the VMware extension is deployed and configured against vCenter, and that the ActiveGate '
+            'it runs on has network access to the vCenter API. Re-run data collection once metrics are confirmed '
+            'flowing before treating VMware coverage as assessed.'
+        ),
+        'roadmap_action': 'Deploy/fix the VMware extension so vSphere/ESXi metrics begin flowing',
+        'roadmap_value':  'Unblocks hypervisor-layer visibility and RCA that this review currently cannot provide',
+    },
     {
         'key': 'alert_tuning',
         'trigger': lambda d: d.get('problems_per_day', 0) > 200,
@@ -59,63 +198,6 @@ OPPORTUNITIES = [
         ),
         'roadmap_action': 'Tune alerting thresholds + enable AutomationEngine triage workflows',
         'roadmap_value':  'Reduces {problems_per_day:,} daily alerts to an actionable, prioritized volume',
-    },
-    {
-        'key': 'log_monitoring',
-        'trigger': lambda d: (d.get('log_records_24h', 0) == 0 and d.get('hosts', 0) > 0) or d.get('highlight_logs', False),
-        'priority': 'Start Here',
-        'slide_title': 'Grail Logs - The Fastest Path to Root Cause Across {hosts} Hosts',
-        'card_title':  '{hosts} instrumented hosts are streaming logs to Grail - trace-to-log correlation and DQL analytics unlock immediate RCA speed',
-        'next_bullet': 'Maximize log value - {hosts} hosts streaming to Grail; enable log-trace correlation and DQL analytics',
-        'body': (
-            '{customer} already has log monitoring active across {hosts} hosts and {cloud_k8s_clusters} Kubernetes clusters. '
-            'Every system event, application log, and access log is flowing into Grail - the same data store as traces and metrics.\n\n'
-            'The step most teams miss is connecting that data. In Grail, a single DQL query spans logs and traces together: '
-            'find the slow span, jump directly to the log lines that explain why - no context switching, no separate log tool, '
-            'no manual correlation by timestamp.\n\n'
-            'With {hosts} hosts and distributed workloads, the gap between "problem detected" and "root cause identified" '
-            'is almost always a log that an engineer has to find by hand. That gap closes when log context is inline with traces.'
-        ),
-        'fix': (
-            'Activate log-trace correlation in Settings > Log Monitoring > Log enrichment. '
-            'Configure log buckets to separate retention tiers by criticality. '
-            'Create log metrics on error patterns to drive SLO burn alerts. '
-            'Use DQL to build log-based dashboards alongside existing trace and infrastructure views.'
-        ),
-        'roadmap_action': 'Activate log-trace correlation; configure log buckets and log-based alerting',
-        'roadmap_value':  'Collapses RCA time by surfacing log context inline with traces across all {hosts} instrumented hosts',
-    },
-    {
-        'key': 'cloud_extension',
-        'trigger': lambda d: (
-            not d.get('cloud_azure_connected') and
-            not d.get('cloud_aws_connected') and
-            not d.get('cloud_gcp_connected') and
-            d.get('cloud_workloads_exist', False)
-        ),
-        'priority': 'Start Here',
-        'slide_title': 'Extend Observability to {cloud_providers_in_use} and VMware Across the Full Estate',
-        'card_title':  'The same OneAgent covering on-prem hosts extends to {cloud_providers_in_use} and VMware with no changes to tooling',
-        'next_bullet': 'Extend to {cloud_providers_in_use} and VMware - connect both before the unmonitored footprint grows further',
-        'body': (
-            '{customer} is moving workloads to {cloud_providers_in_use}. The OneAgent model already covering '
-            'on-prem hosts extends identically to {cloud_providers_in_use} VMs, and through the same '
-            'ActiveGate, to VMware vSphere.\n\n'
-            'That matters for the Discovery & Coverage app too: it can only report full-estate coverage for '
-            'what it can see, and today that stops at OneAgent-reported hosts. {cloud_providers_in_use} and '
-            'VMware topology closes those blind spots.\n\n'
-            'Two points worth flagging: this adds to the log volume already flowing into Grail, and its tags '
-            'and topology are exactly what trace enrichment runs on - spans inherit that context '
-            'automatically, no manual rules to write.'
-        ),
-        'fix': (
-            'Connect the cloud subscription via Settings > Cloud and Virtualization > {cloud_providers_in_use}, '
-            'and vCenter via the VMware integration on the same ActiveGate. Deploy OneAgent to cloud and '
-            'VMware VMs the same way as on-prem hosts. Establish a tagging standard, then confirm the '
-            'estate-wide number in Discovery & Coverage.'
-        ),
-        'roadmap_action': 'Connect {cloud_providers_in_use} and VMware; extend OneAgent and Discovery & Coverage visibility estate-wide',
-        'roadmap_value':  'Full-estate coverage in Discovery & Coverage, added log volume, and automatic trace enrichment from cloud/VMware topology',
     },
     {
         'key': 'slos',
@@ -271,7 +353,34 @@ OPPORTUNITIES = [
     },
 ]
 
-TIER_ORDER = ['Start Here', 'High Value', 'Phase 2']
+TIER_ORDER = ['Coverage', 'Anomaly', 'Start Here', 'High Value', 'Phase 2']
+MAX_ANOMALY_FINDINGS = 6
+SEVERITY_ORDER = {'high': 0, 'medium': 1, 'low': 2}
+
+def _anomaly_opportunities(data):
+    """Turn data['anomalies'] (list of {scope, entity, metric, kind, summary,
+    recommendation, severity?}) into opportunity-shaped dicts at the Anomaly tier,
+    capped and sorted by severity so the deck can't be overrun by noisy baselines."""
+    anomalies = sorted(
+        data.get('anomalies', []),
+        key=lambda a: SEVERITY_ORDER.get(a.get('severity', 'medium'), 1),
+    )[:MAX_ANOMALY_FINDINGS]
+    opps = []
+    for a in anomalies:
+        label = f"{a['scope']} anomaly - {a['entity']}"
+        opps.append({
+            'key': f"anomaly_{a['entity']}_{a['metric']}",
+            'trigger': lambda d: True,
+            'priority': 'Anomaly',
+            'slide_title': label,
+            'card_title':  f"{a['metric']} on {a['entity']}: {a['summary']}",
+            'next_bullet': f"Investigate {a['entity']} - {a['summary']}",
+            'body': a['summary'],
+            'fix': a['recommendation'],
+            'roadmap_action': f"Investigate {a['metric']} anomaly on {a['entity']}",
+            'roadmap_value': 'Resolves an anomaly baselined over the post-enablement window',
+        })
+    return opps
 
 # ── HELPERS ───────────────────────────────────────────────────────────────────
 def asset(name):
@@ -379,8 +488,8 @@ def gap_card(slide, title, body, badge_label, badge_color, fix,
              x + Inches(0.15), y + Inches(4.23), Inches(12.0), Inches(0.9),
              size=15, color=GREY)
 
-def roadmap_table(slide, rows):
-    headers = ['#', 'Next Step', 'Priority', 'Value Unlocked']
+def roadmap_table(slide, rows, headers=None):
+    headers = headers or ['#', 'Next Step', 'Priority', 'Value Unlocked']
     cols    = [0.35, 5.8, 1.2, 4.95]
     col_x   = [Inches(0.5)]
     for c in cols[:-1]:
@@ -412,14 +521,22 @@ def roadmap_table(slide, rows):
             run.font.bold = (i == 2); run.font.name = 'DT Flow'
 
 # ── SCORING + BUILD ───────────────────────────────────────────────────────────
+PHASE_FOR_TIER = {
+    'Coverage': 'Week 1', 'Anomaly': 'Week 1',
+    'Start Here': 'Weeks 2-4', 'High Value': 'Weeks 2-4',
+    'Phase 2': 'This Quarter',
+}
+
 def score(data):
-    active = [o for o in OPPORTUNITIES if o['trigger'](data)]
+    active = [o for o in OPPORTUNITIES if o['trigger'](data)] + _anomaly_opportunities(data)
     return sorted(active, key=lambda o: TIER_ORDER.index(o['priority']))
 
 def fmt(s, data):
     try:
         return s.format(**data)
-    except (KeyError, ValueError):
+    except (KeyError, ValueError) as e:
+        print(f'WARNING: fmt() failed on {s[:60]!r} ({e}) - rendering unformatted. '
+              f'Likely a stray {{ or }} in a model-written anomaly string.', file=sys.stderr)
         return s
 
 def _auto_stat_cards(data):
@@ -436,6 +553,43 @@ def _auto_stat_cards(data):
         cards.append((f"{data.get('problems_per_week', 0):,}", 'Problems\nLast 7 Days'))
     return cards
 
+def _estate_stats(data):
+    """Full-estate OneAgent coverage: folds in cloud/VMware hosts discovered but not
+    yet OneAgent-monitored, so the % reflects the whole estate, not just agented hosts."""
+    oneagent_hosts = data.get('hosts_fullstack', 0) + data.get('hosts_infra', 0)
+    cloud_only     = data.get('cloud_hosts_without_oneagent', 0)
+    vmware_only    = data.get('vmware_hosts_without_oneagent', 0)
+    total          = oneagent_hosts + cloud_only + vmware_only
+    coverage_pct   = round((oneagent_hosts / total) * 100, 1) if total else 0.0
+    return {
+        'oneagent_hosts': oneagent_hosts,
+        'cloud_only': cloud_only,
+        'vmware_only': vmware_only,
+        'total': total,
+        'coverage_pct': coverage_pct,
+    }
+
+def _exec_overview_bullets(data, active, est):
+    """Headline summary bullets for the Executive Overview slide - the intro to
+    Estate Coverage Overview, built from the same data rather than re-asking for it."""
+    tier_counts = {}
+    for o in active:
+        tier_counts[o['priority']] = tier_counts.get(o['priority'], 0) + 1
+    coverage_n  = tier_counts.get('Coverage', 0)
+    anomaly_n   = tier_counts.get('Anomaly', 0)
+    secondary_n = len(active) - coverage_n - anomaly_n
+    bullets = [
+        f"Full-estate OneAgent coverage: {est['coverage_pct']}% "
+        f"({est['oneagent_hosts']} of {est['total']} discovered hosts)",
+        f"Log capture: {data.get('pg_with_logs_pct', '?')}% of process groups  ·  "
+        f"Log-to-trace correlation: {data.get('log_to_trace_pct', '?')}%",
+        f"{len(active)} opportunities identified this review - "
+        f"{coverage_n} Coverage, {anomaly_n} Anomaly, {secondary_n} Account Health",
+    ]
+    bullets.append(f"Top priority: {fmt(active[0]['card_title'], data)}" if active
+                    else "No material gaps identified in this review.")
+    return bullets
+
 def build(data, customer, tenant, output):
     _ensure_template()
     data['customer'] = customer
@@ -451,6 +605,7 @@ def build(data, customer, tenant, output):
 
     active = score(data)
     n      = len(active)
+    est    = _estate_stats(data)
 
     # Cover
     s = prs.slides.add_slide(prs.slide_layouts[0])
@@ -497,6 +652,33 @@ def build(data, customer, tenant, output):
                  Inches(0.5), Inches(4.25) + Inches(0.42) * i,
                  Inches(12.3), Inches(0.38), size=16, color=TIER_COLOR[opp['priority']])
 
+    # Executive Overview (intro to Estate Coverage Overview)
+    s = prs.slides.add_slide(prs.slide_layouts[61])
+    bg(s, 'dt_content_bg.png')
+    slide_title(s, 'Executive Overview')
+    for i, bullet in enumerate(_exec_overview_bullets(data, active, est)):
+        add_text(s, f'→  {bullet}', Inches(0.5), Inches(2.1) + Inches(0.75) * i,
+                 Inches(12.3), Inches(0.65), size=19, color=WHITE)
+
+    # Estate Coverage Overview
+    s = prs.slides.add_slide(prs.slide_layouts[61])
+    bg(s, 'dt_content_bg.png')
+    slide_title(s, 'Estate Coverage Overview')
+    estate_cards = [
+        (f"{est['coverage_pct']}%", 'OneAgent Coverage\nAcross Full Estate'),
+        (str(est['total']),         'Hosts Discovered\n(OneAgent + Cloud + VMware)'),
+        (str(est['cloud_only'] + est['vmware_only']), 'Discovered, Not Yet\nOneAgent-Monitored'),
+        (f"{data.get('pg_with_logs_pct', '?')}%", 'Process Groups\nStreaming Logs'),
+    ]
+    for (big, label), x in zip(estate_cards, [Inches(0.5), Inches(3.35), Inches(6.2), Inches(9.05)]):
+        stat_card(s, big, label, x, Inches(1.9))
+    add_text(s,
+        f"Breakdown: {est['oneagent_hosts']} OneAgent-monitored  ·  "
+        f"{est['cloud_only']} cloud-discovered (no agent)  ·  "
+        f"{est['vmware_only']} VMware-discovered (no agent)  ·  "
+        f"Log-to-trace correlation: {data.get('log_to_trace_pct', '?')}%",
+        Inches(0.5), Inches(3.85), Inches(12.3), Inches(0.7), size=15, color=GREY)
+
     # Next Steps divider
     s = prs.slides.add_slide(prs.slide_layouts[20])
     bg(s, 'dt_content_bg.png')
@@ -534,6 +716,15 @@ def build(data, customer, tenant, output):
         for i, opp in enumerate(active, 1)
     ])
 
+    # How to Get There (sequences the roadmap into phases)
+    s = prs.slides.add_slide(prs.slide_layouts[61])
+    bg(s, 'dt_content_bg.png')
+    slide_title(s, 'How to Get There')
+    roadmap_table(s, [
+        (str(i), fmt(opp['roadmap_action'], data), opp['priority'], PHASE_FOR_TIER[opp['priority']])
+        for i, opp in enumerate(active, 1)
+    ], headers=['#', 'Next Step', 'Priority', 'When'])
+
     # Thank you
     s = prs.slides.add_slide(prs.slide_layouts[63])
     bg(s, 'dt_cover_bg.png')
@@ -549,7 +740,7 @@ def build(data, customer, tenant, output):
     grad_box.line.fill.background()
 
     prs.save(output)
-    print(f'Saved: {output}  ({n} opportunities, {n + 5} slides total)')
+    print(f'Saved: {output}  ({n} opportunities, {n + 9} slides total)')
 
 
 if __name__ == '__main__':
