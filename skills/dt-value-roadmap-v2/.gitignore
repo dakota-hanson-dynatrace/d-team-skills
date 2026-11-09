@@ -1,0 +1,4 @@
+# Per-tenant merged data holds customer names and entity details: keep it local.
+benchmarks/*.json
+__pycache__/
+*.pyc
