@@ -1,4 +1,8 @@
-# Value Roadmap - Data Collection Query Reference
+# Value Roadmap - Coverage, Cloud, and Account Health Query Reference
+
+> **Manual fallback only.** `collect.py` runs these queries automatically. Use this file to debug a
+> field that came back wrong or to extend the collector - not as part of a normal run.
+
 
 All queries assume dtctl is authenticated against the target tenant context.
 Use `dtctl query` (or alias `dtctl q`) for all DQL queries - `dtctl dql` does not exist.
@@ -31,12 +35,15 @@ dtctl query '
   | fieldsAdd monitoringMode = lookup.monitoringMode
   | summarize total_hosts = count(),
       fullstack = countIf(monitoringMode == "FULL_STACK"),
-      infra     = countIf(monitoringMode == "INFRA_ONLY")
+      infra     = countIf(monitoringMode == "INFRASTRUCTURE")
   | fieldsAdd oneagent_fullstack_pct = round((toDouble(fullstack)/toDouble(total_hosts))*100, decimals:1)
 '
 ```
 
 Maps to `hosts_total`, `hosts_fullstack` (= fullstack), `hosts_infra` (= infra), `oneagent_fullstack_pct`.
+
+**Gotcha (confirmed live)**: the Infra-only mode value is `INFRASTRUCTURE`, not `INFRA_ONLY`. The
+earlier version of this query counted 0 Infra-only hosts on a tenant that had 8.
 
 **Gotcha**: access joined fields with dot notation (`lookup.monitoringMode`) - bracket
 form silently returns null. A host with no OneAgent at all isn't a smartscape `HOST`
@@ -57,12 +64,12 @@ dtctl query 'smartscapeNodes "PROCESS" | summarize count()'
 `pg_with_logs_pct` = (distinct process groups from the first query / total process groups
 from the second) * 100.
 
-**Gotcha (cost)**: use a **72h window, not 14d**. A 14-day unfiltered `fetch logs` scan
+**Gotcha (scan limit)**: use a **72h window, not 14d**. A 14-day unfiltered `fetch logs` scan
 hit dtctl's 500GB scan limit on a mid-sized tenant and returned a PARTIAL result even
 with `samplingRatio:1000` applied (scanned ~238GB and still truncated) - this is the only
 query pattern in this skill that blew the scan budget, because every other `fetch
 logs`/`fetch events` query here stays at 24h or less. 72h is long enough to beat a single
-quiet day without re-introducing that cost. Pass `-M=minimal` so the model can see
+quiet day without hitting the scan limit again. Pass `-M=minimal` so the model can see
 `sampled`/scan-limit warnings in the response and caveat `pg_with_logs_pct` as
 approximate in the deck narrative when they appear, instead of presenting it as exact.
 
@@ -78,7 +85,7 @@ dtctl query '
 
 **Gotcha**: `with_trace == 0` means log-trace correlation/enrichment is off, not that no
 requests happened to log. `log_to_trace_pct < 50` is the `log_to_trace` opportunity
-trigger. Same 72h/cost rationale as the process-group query above - don't widen this back
+trigger. Same 72h/scan-limit rationale as the process-group query above - don't widen this back
 to 14d.
 
 ---
@@ -143,7 +150,7 @@ Only when the **primary** metric probe returns zero: set `vmware_hosts` from the
 fallback host-level `hypervisor.type` count (it may still catch a differently-licensed
 or differently-versioned VMware setup) and treat the extension as **not present**
 (`vmware_ext_present: false`). Then ask the operator the intentional/not-intentional
-question in `SKILL.md` Step 2 before writing `vmware_ext_intentional`. If the primary
+question and record the answer in overrides.json as `vmware_ext_intentional`. If the primary
 probe finds metrics, set `vmware_ext_present: true` and `vmware_hosts` from the distinct
 `dt.entity.hypervisor` count - skip the operator prompt entirely.
 
@@ -187,7 +194,7 @@ is `high`/`medium`/`low` and controls sort order and the 6-finding cap in the ge
 
 **Gotcha**: seasonal patterns need at least two full weekly cycles to separate real
 anomalies from normal day-of-week variation - this is exactly why the skill gates on two
-weeks of enablement (SKILL.md Step 0). Don't report a seasonal-style finding off less data
+weeks of enablement. Don't report a seasonal-style finding off less data
 than that; a plain week-over-week delta is the safer comparison on a borderline-short
 window.
 
@@ -243,15 +250,21 @@ Returns a single `totalRequests` number. Convert to display string for `traces_p
 
 ```bash
 # Last 7 days
-dtctl query 'fetch events, from:now()-7d | filter event.category == "PROBLEM" | filter event.kind == "DAVIS_PROBLEM" | summarize count()'
+dtctl query 'fetch dt.davis.problems, from:now()-7d | summarize problems = countDistinctExact(display_id)'
 
 # Last 24h (for problems_per_day)
-dtctl query 'fetch events, from:now()-24h | filter event.category == "PROBLEM" | filter event.kind == "DAVIS_PROBLEM" | summarize count()'
+dtctl query 'fetch dt.davis.problems, from:now()-24h | summarize problems = countDistinctExact(display_id)'
+
+# Top sources (feeds top_problem_sources -> alert_tuning narrative)
+dtctl query 'fetch dt.davis.problems, from:now()-7d | dedup display_id | summarize n = count(), by:{event.name} | sort n desc | limit 5'
 ```
 
-Maps to `problems_per_week` and `problems_per_day`.
+Maps to `problems_per_week`, `problems_per_day`, and `top_problem_sources` (list of `[name, count]`).
 
-**Gotcha**: Filter `event.kind == "DAVIS_PROBLEM"` to avoid counting CUSTOM_ANNOTATION or INFO events as problems. `dtctl get problems` is not a valid resource type - DQL is the only working approach.
+**Gotcha (confirmed live, was a silent bug)**: the earlier form `fetch events | filter event.category ==
+"PROBLEM"` always returns 0 - `event.category` holds ERROR / RESOURCE_CONTENTION / SLOWDOWN /
+AVAILABILITY / CUSTOM_ALERT, never "PROBLEM". On a tenant with 2,074 problems/week it reported 0, so
+`alert_tuning` never fired. Use `dt.davis.problems` and count distinct `display_id`.
 
 ---
 
@@ -416,8 +429,8 @@ For enriching the alert_tuning slide body text:
 
 ```bash
 dtctl query '
-  fetch events, from:now()-7d
-  | filter event.category == "PROBLEM" and event.kind == "DAVIS_PROBLEM"
+  fetch dt.davis.problems, from:now()-7d
+  | dedup display_id
   | summarize count(), by: {event.status}
 '
 ```
@@ -426,9 +439,9 @@ For breakdown by problem type (slowdown / error / availability / contention):
 
 ```bash
 dtctl query '
-  fetch events, from:now()-7d
-  | filter event.category == "PROBLEM" and event.kind == "DAVIS_PROBLEM"
-  | summarize count(), by: {dt.davis.impact_level}
+  fetch dt.davis.problems, from:now()-7d
+  | dedup display_id
+  | summarize count(), by: {event.category}
 '
 ```
 
@@ -449,38 +462,3 @@ Use the display string for `traces_per_day` in data.json since it appears verbat
 
 ---
 
-## Data Collection Checklist
-
-### Coverage / Cloud / VMware / Anomaly (primary)
-- [ ] hosts_total, hosts_fullstack, hosts_infra (int) - via the OneAgent coverage join
-- [ ] oneagent_fullstack_pct (int, 0-100)
-- [ ] pg_with_logs_pct (int, 0-100) - via logs-by-PG vs total PROCESS nodes
-- [ ] log_to_trace_pct (int, 0-100)
-- [ ] cloud_integration_live (bool), cloud_hosts_without_oneagent (int), cloud_services_without_logs (int)
-- [ ] enablement_date (string, ask SE) - gates how much to trust seasonal-style anomalies
-- [ ] vmware_hosts (int) - from hypervisor.type=="VMWARE" host count
-- [ ] vmware_ext_present (bool) - from the EXT_*/metric probe
-- [ ] vmware_ext_intentional (bool or null) - **only set when vmware_ext_present is false**; ask the operator
-- [ ] anomalies (list, can be empty) - one entry per real deviation found, capped ~6
-
-### Secondary (broad account-health)
-- [ ] hosts (int)
-- [ ] services (int)
-- [ ] db_services (int) and db_service_pct (int, 0-100)
-- [ ] traces_per_day (string, human-readable)
-- [ ] problems_per_week (int)
-- [ ] problems_per_day (int)
-- [ ] alerting_profiles (int) - via `builtin:alerting.profile`
-- [ ] notifications_count (int) - via `builtin:problem.notifications`
-- [ ] log_records_24h (int, usually 0 or 1)
-- [ ] slo_count (int)
-- [ ] workflow_count (int)
-- [ ] rum_apps_classic (int)
-- [ ] grail_rum_active (bool)
-- [ ] synthetic_monitors (int) - sum of synthetic_test + http_check entity counts
-- [ ] cloud_azure_connected (bool) - via `builtin:hyperscaler-authentication.connections.azure`
-- [ ] cloud_aws_connected (bool) - via `builtin:hyperscaler-authentication.connections.aws`
-- [ ] cloud_gcp_connected (bool) - via `builtin:hyperscaler-authentication.connections.gcp`
-- [ ] cloud_k8s_clusters (int)
-- [ ] cloud_workloads_exist (bool, ask SE)
-- [ ] cloud_providers_in_use (string, ask SE)

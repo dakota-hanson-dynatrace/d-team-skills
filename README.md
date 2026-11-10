@@ -70,8 +70,10 @@ Skills are grouped under `skills/<category>/` by general application, so the dir
 
 | Skill | Triggers | What it does |
 |-------|---------|--------------|
-| **dt-value-roadmap** | "value roadmap", "gap analysis", "account review", "health check" | Generates a branded customer-facing PowerPoint. Collects live data from a tenant via dtctl/DQL, scores it against an opportunity library, and builds a prioritized roadmap deck. |
-| **dynatrace-pptx-skill** | "create a presentation", "build a deck", "DT slides" | Builds PowerPoint decks using the official Dynatrace 2026 brand template. Provides color constants, font specs, layout patterns, and python-pptx gotchas. Required by `dt-value-roadmap` — kept in this same category folder since `dt-value-roadmap`'s generator locates it by relative sibling path. |
+| **dt-value-roadmap-v2** | "value roadmap", "gap analysis", "account review", "health check" | Generates a Value Roadmap (Markdown report, Word report, and a short PowerPoint) for a customer or prospect tenant. Collects live data from a tenant via dtctl/DQL, then builds the report and deck in the Observability Gap Analysis look, using effort/value wording only (no cost/price/billing language). Replaces `dt-value-roadmap` (v1). Optionally shells out to `dt-upgrade-readiness` for a readiness digest — see note below. |
+| **dynatrace-pptx-skill** | "create a presentation", "build a deck", "DT slides" | Builds PowerPoint decks using the official Dynatrace 2026 brand template. Provides color constants, font specs, layout patterns, and python-pptx gotchas. Fallback only - `dt-value-roadmap-v2` ships its own template. |
+
+> `dt-value-roadmap-v2/collect.py`'s `--readiness` flag shells out to `../../migration/dt-upgrade-readiness/scripts/collect.py` by a path that names the `migration/` category directly, not a sibling-relative path — if `dt-upgrade-readiness` is ever renamed or moved to a different category, update that path too.
 
 ### `dev-tools/` — general engineering workflow
 
