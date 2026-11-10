@@ -15,9 +15,9 @@ hundreds of MB, which would burn the very tokens this review is trying to save.
 1. **Run the digest script.** It is pure bash + jq, costs zero tokens, and does the heavy lifting:
 
    ```
-   bash $HOME/.claude/skills/claude-usage-review/analyze.sh
+   bash $HOME/.claude/skills/productivity/claude-usage-review/analyze.sh
    ```
-   For unattended (launchd/cron) runs, add a `Bash(bash <your literal expanded $HOME>/.claude/skills/claude-usage-review/analyze.sh*)`
+   For unattended (launchd/cron) runs, add a `Bash(bash <your literal expanded $HOME>/.claude/skills/productivity/claude-usage-review/analyze.sh*)`
    rule to `permissions.allow` in your own `~/.claude/settings.json` — the allowlist matches a
    literal string, so it must be your actual expanded home directory, not `~` or `$HOME`.
 

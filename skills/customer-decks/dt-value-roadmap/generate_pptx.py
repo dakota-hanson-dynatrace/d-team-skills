@@ -10,6 +10,7 @@ from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
 
 SKILL_DIR  = os.path.dirname(os.path.abspath(__file__))
+# ponytail: assumes dynatrace-pptx-skill is a sibling dir (same category folder) — keep both in skills/customer-decks/
 ASSETS     = os.path.join(os.path.dirname(SKILL_DIR), 'dynatrace-pptx-skill', 'assets')
 TMPL_FIXED = os.path.join(SKILL_DIR, 'dt_template_fixed.pptx')
 

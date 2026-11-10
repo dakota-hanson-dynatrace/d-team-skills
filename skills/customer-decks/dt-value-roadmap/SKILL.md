@@ -32,7 +32,7 @@ fire and sort underneath.
 
 - dtctl configured and authenticated against the target tenant context
 - `/usr/local/bin/python3.11` with `python-pptx` installed
-- `dynatrace-pptx-skill/assets/` present at `~/.claude/skills/dynatrace-pptx-skill/assets/`
+- `dynatrace-pptx-skill/assets/` present at `~/.claude/skills/customer-decks/dynatrace-pptx-skill/assets/`
 - Cloud (AWS/Azure/GCP) and VMware integrations have been enabled for **at least two weeks**
   before running this skill - shorter windows don't give week-over-week/seasonal baselines
   enough signal, and findings should say so if the gate isn't met
@@ -174,7 +174,7 @@ If the SE wants custom cards, add:
 ### Step 3 - Generate the deck
 
 ```bash
-/usr/local/bin/python3.11 ~/.claude/skills/dt-value-roadmap/generate_pptx.py \
+/usr/local/bin/python3.11 ~/.claude/skills/customer-decks/dt-value-roadmap/generate_pptx.py \
   --customer "Acme Corp" \
   --tenant "abc123.apps.dynatrace.com" \
   --data /path/to/data.json \
@@ -303,7 +303,7 @@ Output is always: Cover → Foundation divider → Stats slide → Executive Ove
 ## Improvement Roadmap
 
 ### Phase 1 - Run it more (right now)
-After each engagement, save `data.json` to `~/.claude/skills/dt-value-roadmap/benchmarks/<tenant-id>.json`. Note which opportunities fired and which the customer already had addressed. After 5 tenants you'll see patterns.
+After each engagement, save `data.json` to `~/.claude/skills/customer-decks/dt-value-roadmap/benchmarks/<tenant-id>.json`. Note which opportunities fired and which the customer already had addressed. After 5 tenants you'll see patterns.
 
 ### Phase 2 - Benchmarking (5-10 tenants)
 With 10+ saved benchmarks, add peer comparison callouts to slides:
