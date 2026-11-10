@@ -52,6 +52,7 @@ Skills are grouped under `skills/<category>/` by general application, so the dir
 | Skill | Triggers | What it does |
 |-------|---------|--------------|
 | **dt-finops-hosts** | "FullStack candidates", "Infra-only downgrade", "FinOps host review" | Finds FullStack-monitored hosts with no deep-monitored workload (zero Smartscape processes) as Infra-only downgrade candidates, with RAM totals and aggregate RAM exposure. Read-only — never changes monitoring mode. |
+| **dt-metric-ingest-optimizer** | "metric ingest", "unused metrics", "reduce metric volume", "OpenTelemetry sampling interval", "_bucket histogram", "anomaly detector copies" | Analyzes everything a tenant is billed for under Metrics - Ingest & Process plus the Metric - Query load. Produces a customer-facing Word and Markdown review (findings, remediation steps, phased plan), a findings notebook, and a dashboard comparing any selected window with the same-length window 7 days earlier. Finds unused, rarely used, API-only and detector-only metrics, histogram bucket and OpenTelemetry interval savings, duplicate signals, cost-center gaps and detector copies. Read-only unless the user agrees to create the notebook and dashboard. Runs against one or several tenants. |
 
 ### `mainframe/` — mainframe monitoring and positioning
 
