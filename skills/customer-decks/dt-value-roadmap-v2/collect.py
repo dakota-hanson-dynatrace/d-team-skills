@@ -17,7 +17,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import tech_discovery
 
 SKILL_DIR = os.path.dirname(os.path.abspath(__file__))
-READINESS = os.path.join(os.path.dirname(SKILL_DIR), 'dt-upgrade-readiness', 'scripts', 'collect.py')
+SKILLS_ROOT = os.path.dirname(os.path.dirname(SKILL_DIR))  # .../skills/
+# ponytail: names the migration/ category directly (dt-upgrade-readiness isn't a sibling
+# of this skill post-reorg) — update if dt-upgrade-readiness changes category or name
+READINESS = os.path.join(SKILLS_ROOT, 'migration', 'dt-upgrade-readiness', 'scripts', 'collect.py')
 
 class Collector:
     def __init__(self, ctx, out):

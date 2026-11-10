@@ -8,5 +8,16 @@
   },
   "repository": "https://github.com/dynatrace/d-team-skills",
   "license": "UNLICENSED",
-  "keywords": ["dynatrace", "se", "skills", "observability"]
+  "keywords": ["dynatrace", "se", "skills", "observability"],
+  "skills": [
+    "./skills/custom-apps",
+    "./skills/dashboards",
+    "./skills/finops",
+    "./skills/mainframe",
+    "./skills/migration",
+    "./skills/customer-decks",
+    "./skills/dev-tools",
+    "./skills/productivity",
+    "./skills/sales-ops"
+  ]
 }

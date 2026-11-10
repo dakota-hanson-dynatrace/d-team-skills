@@ -54,7 +54,7 @@ Check the context is authenticated and read-only (`dtctl config get-contexts`). 
 
 ### 2. Collect (one command, ~3-5 minutes)
 ```bash
-SK=~/.claude/skills/dt-value-roadmap-v2
+SK=~/.claude/skills/customer-decks/dt-value-roadmap-v2
 uv run --python 3.11 python -X utf8 "$SK/collect.py" --context "<ctx>" --out "<work dir>" --readiness
 ```
 Options: `--prod-prefixes p` (VM name prefixes that mean production, comma list), `--vdi vdi`
