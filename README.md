@@ -67,6 +67,12 @@ Skills are grouped under `skills/<category>/` by general application, so the dir
 |-------|---------|--------------|
 | **dt-upgrade-readiness** | "upgrade readiness", "Gen3 migration", "classic to Grail" | Assesses a tenant's readiness to migrate from Dynatrace Gen2 (Classic) to Gen3. Runs readiness checks via dtctl, produces a self-contained HTML report. |
 
+### `account-review/` — tenant assessment deliverables
+
+| Skill | Triggers | What it does |
+|-------|----------|--------------|
+| **dt-tagging-review** | "tagging review", "tag gap analysis", "how is this tenant tagged", "segment out team X", "which teams tag well" | Profiles a tenant's tagging across all three layers (native host groups/clusters, legacy CMDB free-text tags, cloud auto-tags), finds the team that tags best, and scores naming/coverage gaps (ungrouped hosts, missing ownership tag, inconsistent delimiters/case/spelling, fragmented non-prod values, duplicate key schemes). Produces a self-contained, shareable executive one-page HTML overview. Read-only via dtctl. |
+
 ### `customer-decks/` — customer-facing PowerPoint deliverables
 
 | Skill | Triggers | What it does |
