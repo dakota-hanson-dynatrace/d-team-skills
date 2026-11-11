@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{TENANT}} Tagging Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+  /* Layout: single-column executive brief — summary band, metric tiles, two-column state/gap analysis, action strip */
+  :root {
+    --bg: #f4f5f7; --surface: #ffffff; --surface-2: #eef0f3;
+    --ink: #1a2230; --ink-soft: #5a6678; --line: #dde1e8;
+    --accent: #1496a0; --accent-deep: #0b5c63;
+    --good: #2f8f4e; --warn: #c47f15; --crit: #c0433a;
+    --crit-bg: #fbeceb; --warn-bg: #fbf4e6; --good-bg: #eaf5ee;
+    --font-head: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+    --font-body: "Inter", system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1319; --surface: #161d26; --surface-2: #1d2631;
+      --ink: #e8ecf2; --ink-soft: #9aa6b6; --line: #2a333f;
+      --accent: #2bb7c2; --accent-deep: #7fe0e8;
+      --good: #5cc07e; --warn: #e0a84a; --crit: #e8766c;
+      --crit-bg: #2c1a19; --warn-bg: #2a2314; --good-bg: #16261c;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1319; --surface: #161d26; --surface-2: #1d2631;
+    --ink: #e8ecf2; --ink-soft: #9aa6b6; --line: #2a333f;
+    --accent: #2bb7c2; --accent-deep: #7fe0e8;
+    --good: #5cc07e; --warn: #e0a84a; --crit: #e8766c;
+    --crit-bg: #2c1a19; --warn-bg: #2a2314; --good-bg: #16261c;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink); font-family: var(--font-body);
+    line-height: 1.5;
+    padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  img { max-width: 100%; }
+  .wrap {
+    max-width: 1080px; margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 28px 40px;
+  }
+  h1, h2, h3 { font-family: var(--font-head); text-wrap: balance; margin: 0; }
+  .eyebrow { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-deep); font-weight: 600; }
+  header.top { border-bottom: 2px solid var(--accent); padding-bottom: 14px; margin-bottom: 18px; }
+  header.top h1 { font-size: clamp(24px, 4vw, 34px); letter-spacing: -0.01em; margin-top: 4px; }
+  header.top .sub { color: var(--ink-soft); font-size: 13px; margin-top: 6px; }
+
+  .lede { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 18px; font-size: 14.5px; margin-bottom: 20px; }
+  .lede strong { color: var(--accent-deep); }
+
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .tile { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; min-width: 0; }
+  .tile .n { font-family: var(--font-head); font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .tile .lbl { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+  .tile.flag .n { color: var(--crit); }
+  .tile.ok .n { color: var(--good); }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 22px; }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; min-width: 0; }
+  .panel h2 { font-size: 16px; margin-bottom: 4px; }
+  .panel .cap { font-size: 12px; color: var(--ink-soft); margin-bottom: 12px; }
+
+  .layer { padding: 10px 0; border-top: 1px solid var(--line); }
+  .layer:first-of-type { border-top: none; padding-top: 2px; }
+  .layer .lh { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .layer .lh b { font-size: 13.5px; }
+  .pill { font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+  .pill.clean { background: var(--good-bg); color: var(--good); }
+  .pill.mid { background: var(--warn-bg); color: var(--warn); }
+  .pill.noise { background: var(--crit-bg); color: var(--crit); }
+  .layer p { font-size: 12.5px; color: var(--ink-soft); margin: 4px 0 0; }
+  code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; color: var(--ink); }
+
+  .gap { display: grid; grid-template-columns: auto 1fr; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); align-items: start; }
+  .gap:first-of-type { border-top: none; }
+  .sev { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; padding: 3px 7px; border-radius: 5px; margin-top: 1px; white-space: nowrap; }
+  .sev.h { background: var(--crit-bg); color: var(--crit); }
+  .sev.m { background: var(--warn-bg); color: var(--warn); }
+  .gap .gt { font-size: 13px; font-weight: 600; }
+  .gap .gd { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+
+  .bl { background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%); border: 1px solid var(--line); border-top: 3px solid var(--good); border-radius: 10px; padding: 16px 18px; margin-bottom: 22px; }
+  .bl h2 { font-size: 16px; }
+  .bl .cap { font-size: 12px; color: var(--ink-soft); margin: 4px 0 12px; }
+  .bl-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .bl-grid div { min-width: 0; }
+  .bl-grid .n { font-family: var(--font-head); font-size: 20px; font-weight: 600; color: var(--good); font-variant-numeric: tabular-nums; }
+  .bl-grid .t { font-size: 12px; color: var(--ink-soft); margin-top: 1px; }
+
+  .actions { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .actions h2 { font-size: 16px; margin-bottom: 12px; }
+  .actions ol { margin: 0; padding-left: 0; list-style: none; counter-reset: a; display: grid; gap: 10px; }
+  .actions li { counter-increment: a; display: grid; grid-template-columns: auto 1fr; gap: 10px; font-size: 13px; align-items: baseline; }
+  .actions li::before { content: counter(a); font-family: var(--font-head); font-weight: 600; font-size: 12px; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: var(--accent); color: #fff; align-self: start; }
+  .actions li b { color: var(--ink); }
+  .actions li span { color: var(--ink-soft); }
+
+  footer { margin-top: 18px; font-size: 11px; color: var(--ink-soft); text-align: right; }
+
+  @media (max-width: 720px) {
+    .tiles { grid-template-columns: repeat(2, 1fr); }
+    .cols { grid-template-columns: 1fr; }
+    .bl-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Dynatrace Tenant Review &middot; {{TENANT}}</div>
+    <h1>Tagging Overview &amp; Gap Analysis</h1>
+    <div class="sub">Executive summary of how the estate is tagged today, the team that does it best, and where the gaps are. Live tenant data, {{MONTH_YEAR}}.</div>
+  </header>
+
+  <!-- One-sentence verdict. Lead with the headline judgement; bold the 1-2 phrases that matter. -->
+  <div class="lede">{{VERDICT_HTML}}</div>
+
+  <!-- Four headline tiles. Add class "flag" (red) to a bad number, "ok" (green) to a good one. -->
+  <div class="tiles">
+    <div class="tile"><div class="n">{{TILE1_N}}</div><div class="lbl">{{TILE1_LBL}}</div></div>
+    <div class="tile flag"><div class="n">{{TILE2_N}}</div><div class="lbl">{{TILE2_LBL}}</div></div>
+    <div class="tile"><div class="n">{{TILE3_N}}</div><div class="lbl">{{TILE3_LBL}}</div></div>
+    <div class="tile ok"><div class="n">{{TILE4_N}}</div><div class="lbl">{{TILE4_LBL}}</div></div>
+  </div>
+
+  <div class="cols">
+    <div class="panel">
+      <h2>Current tagging &mdash; three layers</h2>
+      <div class="cap">Tags come from independent sources, not one scheme.</div>
+      <!-- REPEAT .layer per layer found. pill class: clean | mid | noise -->
+      <div class="layer">
+        <div class="lh"><b>Native host groups &amp; K8s cluster names</b><span class="pill clean">Cleanest signal</span></div>
+        <p>{{LAYER_NATIVE_HTML}}</p>
+      </div>
+      <div class="layer">
+        <div class="lh"><b>Legacy CMDB free-text tags</b><span class="pill mid">Rich but messy</span></div>
+        <p>{{LAYER_LEGACY_HTML}}</p>
+      </div>
+      <div class="layer">
+        <div class="lh"><b>Cloud auto-tags</b><span class="pill noise">Noise</span></div>
+        <p>{{LAYER_CLOUD_HTML}}</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Gaps &amp; patterns</h2>
+      <div class="cap">Where the tagging breaks down, worst first.</div>
+      <!-- REPEAT .gap per gap found, HIGH before MED. sev class: h | m -->
+      <div class="gap"><span class="sev h">HIGH</span><div><div class="gt">{{GAP1_TITLE}}</div><div class="gd">{{GAP1_DESC_HTML}}</div></div></div>
+      <div class="gap"><span class="sev h">HIGH</span><div><div class="gt">{{GAP2_TITLE}}</div><div class="gd">{{GAP2_DESC_HTML}}</div></div></div>
+      <div class="gap"><span class="sev m">MED</span><div><div class="gt">{{GAP3_TITLE}}</div><div class="gd">{{GAP3_DESC_HTML}}</div></div></div>
+      <div class="gap"><span class="sev m">MED</span><div><div class="gt">{{GAP4_TITLE}}</div><div class="gd">{{GAP4_DESC_HTML}}</div></div></div>
+      <div class="gap"><span class="sev m">MED</span><div><div class="gt">{{GAP5_TITLE}}</div><div class="gd">{{GAP5_DESC_HTML}}</div></div></div>
+    </div>
+  </div>
+
+  <!-- The model team. If no team clearly stands out, replace this block with a note that no team yet tags to this standard. -->
+  <div class="bl">
+    <div class="eyebrow" style="color:var(--good)">The model to replicate</div>
+    <h2>{{MODEL_TEAM}} &mdash; the team doing tagging right</h2>
+    <div class="cap">{{MODEL_TEAM_CAP}}</div>
+    <div class="bl-grid">
+      <div><div class="n">{{M1_N}}</div><div class="t">{{M1_T}}</div></div>
+      <div><div class="n">{{M2_N}}</div><div class="t">{{M2_T}}</div></div>
+      <div><div class="n">{{M3_N}}</div><div class="t">{{M3_T}}</div></div>
+      <div><div class="n">{{M4_N}}</div><div class="t">{{M4_T}}</div></div>
+    </div>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin:12px 0 0">{{MODEL_RUNNERSUP_HTML}}</p>
+  </div>
+
+  <div class="actions">
+    <h2>Recommended next steps</h2>
+    <ol>
+      <!-- REPEAT li per action, highest-impact first -->
+      <li><b>{{ACTION1_B}}</b> <span>{{ACTION1_HTML}}</span></li>
+      <li><b>{{ACTION2_B}}</b> <span>{{ACTION2_HTML}}</span></li>
+      <li><b>{{ACTION3_B}}</b> <span>{{ACTION3_HTML}}</span></li>
+      <li><b>{{ACTION4_B}}</b> <span>{{ACTION4_HTML}}</span></li>
+    </ol>
+  </div>
+
+  <footer>Source: live {{TENANT}} tenant via dtctl &middot; host and K8s topology, {{MONTH_YEAR}}. Counts reflect current Smartscape state.</footer>
+</div>
+</body>
+</html>

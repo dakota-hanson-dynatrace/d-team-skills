@@ -1,6 +1,6 @@
 {
   "name": "se-skills",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Dynatrace SE team skills for Claude Code",
   "author": {
     "name": "Dynatrace SE Team",
@@ -10,6 +10,7 @@
   "license": "UNLICENSED",
   "keywords": ["dynatrace", "se", "skills", "observability"],
   "skills": [
+    "./skills/account-review",
     "./skills/custom-apps",
     "./skills/dashboards",
     "./skills/finops",
