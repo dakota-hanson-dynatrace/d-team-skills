@@ -103,3 +103,35 @@ named default from §1 or §2 above — that's the audit trail. Add one closing 
 capabilities were left out and why (not discussed vs. no napkin path available), which defaults were
 assumed (e.g., 35-day log retention), and which discount tier was used and why it's self-consistent
 per §3.
+
+## 5. Account-team-sourced formula patterns (Synthetics, Automation, AppEngine)
+
+Neither source `.xlsm` tool's documentation, nor §1-§4 above, gave a quantity formula for
+Synthetic Monitoring, Automation Workflows, or AppEngine Functions when the customer only states
+monitor/workflow *counts* and *execution cadence* rather than a pre-computed annual usage number.
+The formulas below were confirmed live in a real account-team working model (a customer DPS
+investment worksheet, not an official Dynatrace tool) and are reproduced here because they're
+genuine, internally-consistent rate-card unit conversions — not invented for this skill. Use them
+the same way as any other napkin default: state the formula and the inputs it ran on, don't present
+it as if it came from the official Usage Estimator.
+
+- **Browser/Clickpath Synthetic actions (annual):**
+  `monitors × avg_actions_per_execution × (60 / frequency_minutes) × 24 × 365`
+  — monitor count × actions per run × runs/hour × hours/day × days/year. Price against "Browser
+  Monitor or Clickpath" (with/without Insights per rate-card.md).
+- **HTTP Synthetic requests (annual):**
+  `monitors × (60 / frequency_minutes) × 24 × 365` — same cadence logic, one request per execution
+  (no per-execution step count). Price against "HTTP Monitor" (with/without Insights).
+- **Automation Workflow-hours (annual):**
+  `workflows × avg_hours_per_day_per_workflow × 365` — this is the one quantity estimator-mechanics.md
+  flagged as missing ("existence-time not execution-time" billing still applies: this formula
+  estimates the hours each workflow instance *exists/runs* per day, not a count of executions).
+- **AppEngine Standard Function Calls:** confirmed as a flat `invocations × $1,000/1,000,000`
+  (list) — no conversion needed, "invocations" in a customer's own language maps directly to the
+  rate-card's "invocations" unit, unlike AI Units (still no confirmed call-to-unit ratio — don't
+  guess one).
+
+These patterns do **not** cover Citrix extension sessions, Horizon VDI sessions, physical-desktop
+monitoring, network device/circuit counts, or an AI-call-to-AI-Unit ratio — no confirmed formula or
+rate-card mapping has been found for any of those yet. Leave them off a napkin estimate rather than
+guessing, same as any other undocumented capability.
