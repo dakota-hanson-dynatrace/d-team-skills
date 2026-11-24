@@ -131,7 +131,29 @@ it as if it came from the official Usage Estimator.
   rate-card's "invocations" unit, unlike AI Units (still no confirmed call-to-unit ratio — don't
   guess one).
 
-These patterns do **not** cover Citrix extension sessions, Horizon VDI sessions, physical-desktop
-monitoring, network device/circuit counts, or an AI-call-to-AI-Unit ratio — no confirmed formula or
-rate-card mapping has been found for any of those yet. Leave them off a napkin estimate rather than
-guessing, same as any other undocumented capability.
+These patterns do **not** cover Horizon VDI sessions, physical-desktop monitoring, network
+device/circuit counts, or an AI-call-to-AI-Unit ratio — no confirmed formula or rate-card mapping
+has been found for any of those yet. Leave them off a napkin estimate rather than guessing, same as
+any other undocumented capability.
+
+## 6. Citrix Virtual Apps and Desktops sessions/servers (official-docs-sourced)
+
+Unlike §5 above, this one is confirmed straight from Dynatrace's own public extension docs, not an
+account-team working model — full mechanics and citation in estimator-mechanics.md's "Citrix Virtual
+Apps and Desktops extension" section. Napkin version:
+
+- **"~N Citrix servers" the customer already counts among their total monitored host fleet:**
+  that's Host Monitoring (Full-Stack/Infra/F&D) usage already captured by §1 above — **do not**
+  add a separate per-server Citrix charge for server-level monitoring. The extension itself is free
+  to deploy; it only adds cost for what it additionally ingests (broker metrics and/or session RUM,
+  below).
+- **"~N Citrix sessions/day" → RUM, not a metrics/DDU line.** `sessions/day × 365` → sessions/year,
+  priced 1:1 against the **RUM** rate-card line (with/without Insights per rate-card.md) — same unit
+  and mechanism as web/mobile RUM sessions, confirmed by Dynatrace's docs ("each ICA session
+  corresponds roughly to one Dynatrace user session") and by this workbook's own `RUMfromExtensions`
+  side-output for Citrix. This is very likely what a customer's generic "Citrix" cost line actually
+  represents, not a custom-metrics/extension charge — check before assuming otherwise.
+- **Environment-wide broker metrics (site/delivery-group/catalog/desktop counts)** only apply if
+  PowerShell SDK/REST API/Managed mode is also configured — a separate, additive driver from the
+  session RUM above. Needs real site/group/catalog/desktop/controller counts from the customer; no
+  napkin default exists for these — see estimator-mechanics.md for the formula.

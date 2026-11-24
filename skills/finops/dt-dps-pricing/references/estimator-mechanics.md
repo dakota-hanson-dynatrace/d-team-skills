@@ -153,6 +153,39 @@ needed). DDU (Davis Data Unit) constants convert back to custom-metric-data-poin
 **Double-count risk:** this sheet and the detailed Extensions sheet are two ways to estimate the
 *same* technologies — confirm only one was filled in for any given technology, not both.
 
+## Citrix Virtual Apps and Desktops extension — confirmed from official Dynatrace docs
+
+Source: [Citrix DaaS & Virtual Apps and Desktops extension](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/citrix-virtual-apps-and-desktops-v2)
+(docs.dynatrace.com). The extension itself is free to deploy — "There is no charge to use the
+extension. You are only charged for the data that the extension ingests." It produces **two
+independent, additive** chargeable telemetry streams; a given deployment may generate one or both
+depending on which deployment mode(s) are configured:
+
+1. **Environment-wide broker metrics** (PowerShell SDK / REST API / Managed deployment modes) —
+   custom metrics on site/delivery-group/catalog/desktop/controller state (session count, load
+   index, power/fault state, etc.), keyed `citrix.broker_*`. Approximate metric data points/minute:
+   - PowerShell SDK: `(4 × sites) + (5 × controllers) + (11 × groups) + (5 × catalogs) + (9 × desktops)`
+   - REST API / Managed: same formula, omitting the controllers term entirely (not just zeroing it).
+   - Annualize the same way as every other Extensions line: `dp/min × 60 × 24 × 365` → feeds
+     **Metrics - Ingest & Process** (Grail/DPS) or **Custom Metrics Classic**, per the usual
+     `isUseMetricsPoweredByGrail`-style routing. Classic DDU: `× 0.001`.
+   - No default "Metric collection frequency" (polling interval) is documented — it's a
+     user-configurable setting with no stated default. The per-minute data point counts above
+     already assume the standard normalized 1-data-point/minute ingest cadence (consistent with
+     Dynatrace's general metric-cost-calculation docs), independent of the actual configured poll
+     interval.
+2. **VDA mode (per-session RUM)** — "the extension also ingests Real User Monitoring data" for
+   each Citrix ICA session. Documented 1:1 conversion: "Each Citrix ICA session corresponds roughly
+   to one Dynatrace user session, although ICA sessions longer than two hours will be split by
+   Dynatrace into multiple user sessions." This feeds the **RUM** rate-card line (with/without
+   Insights, rate-card.md) directly — `sessions/year × 1:1`, no extra factor beyond the >2h split —
+   and is the same mechanism this file's Extensions section above calls `RUMfromExtensions`: Citrix
+   is one of only two extensions (with SAP ABAP) confirmed to produce a RUM side-output.
+
+Not documented anywhere in the public extension page or the workbook: a default session duration
+(for estimating how many >2h splits occur), or a default site/group/catalog count — these must come
+from the customer's own Citrix Studio/DaaS console, not a napkin assumption.
+
 ## AWS / Azure / GCP Cloud Services
 
 Same pattern across all three clouds (different service catalogs): a "default" block of services
