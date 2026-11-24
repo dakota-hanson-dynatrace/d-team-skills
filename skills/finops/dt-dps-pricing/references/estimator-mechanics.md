@@ -56,7 +56,36 @@ checking against paths 2/3 above.
   # locations`.
 - Synthetic HTTP Monitoring = `(# monitors × executions/hour) × 24 × 365 × # locations`.
 
-## Database Monitoring
+## Database Monitoring — two genuinely separate products, easy to conflate
+
+**There are two unrelated DB monitoring billing paths, and the sizing summary phrase "N instances,
+polled every M minutes" is the tell for which one applies.** Confirmed against
+[docs.dynatrace.com/docs/license/capabilities/app-infra-observability/database-monitoring](https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability/database-monitoring)
+(fetched 2026-11-24):
+
+1. **Native "Database Monitoring"** (this sheet, rate-card line `Database Monitoring`,
+   db-instance-hours, $1,100/10,000) — a deeper capability giving "visibility into query plans,
+   waits, indexes, and schema details" via normalized-query sampling. Per the docs, **it currently
+   only supports databases monitored by the PostgreSQL extension or the MySQL extension** — Oracle,
+   SQL Server/MSSQL, DB2, SAP HANA, etc. are not eligible for this line at all today, regardless of
+   how the deal is sized. It has **no user-facing "polling interval" input** — billing is continuous
+   db-instance-hours in 15-minute increments (rounded up) for as long as the instance exists, not
+   something a sizing summary would describe as "polled every 5 minutes."
+2. **Classic extension-based monitoring** (OneAgent/ActiveGate extensions — Oracle, MSSQL, DB2 LUW,
+   MySQL, SAP HANA, etc.) — billed as ordinary custom metrics (Metrics - Ingest & Process / Custom
+   Metrics Classic on the rate card), via the **`Extensions`** sheet in this same workbook (see
+   below), not this sheet. These extensions expose a real, user-configurable polling interval (the
+   SQL data source `interval` property, minutes, default commonly 1–10 depending on extension) — "N
+   instances polled every 5 minutes" is describing *this* product, not native Database Monitoring.
+
+**Practical rule: if the sizing summary names a polling interval, model it on the `Extensions`
+sheet (classic custom metrics), not this sheet (native db-instance-hours) — even if the rate card's
+line is literally labeled "Database Monitoring."** The label match is a trap; the metering model and
+the stated inputs (instance count + poll interval vs. instance count + lifetime-hours only) are what
+actually distinguish them. MySQL is the one ambiguous case where either path is technically eligible
+— confirm with the customer which collection mechanism is actually deployed before assuming.
+
+### Native Database Monitoring sheet mechanics (when the above rule points here)
 
 - Base usage: `# db instances/day × avg lifetime hours/day × 365` → db-instance-hours/year.
 - Free tier: 1,000 normalized queries per 15-minute interval per instance, included at no charge.
@@ -182,6 +211,30 @@ count; a hardcoded "metrics per instance" constant is multiplied in; annualized 
 **Gotcha:** several blocks use `IF(D<>"", D*constant1, constant2*constant1)` — i.e. if the
 per-item count is left blank, the formula does **not** zero out, it silently substitutes a
 different hardcoded default assumption. Blank ≠ excluded on this sheet.
+
+**Gotcha #2 — no polling-interval input anywhere on this sheet** (same caveat as the Custom Metrics
+network-device sub-table above): every DB/device block annualizes with a fixed `×60×24×365`, i.e.
+continuous 1-minute-cadence polling baked into the constant. The classic DB extensions this sheet
+models (SQL data source `interval` property) are commonly configured at 5+ minutes in production to
+manage DDU/metric consumption — if the actual deployed polling interval is known and isn't 1 minute,
+scale the sheet's data-point output by `(1 / actual_interval_minutes)` rather than using the raw
+formula output as-is, or the estimate overstates cost by that same factor.
+
+**Confirmed per-engine constants** (DB extension blocks, cell-verified, default/minimum settings —
+row refs are on the `Extensions` sheet of `Dynatrace DPS Usage Estimator.xlsm`):
+
+| Extension | Rows | Metrics (minimum-default inputs) |
+|---|---|---|
+| Oracle (extension 2.0) | 90–93 | `32/host + 2/wait-event (min 2) + 2/tablespace (min 7)` ≈ **50/host** |
+| Microsoft SQL Server (MSSQL) | 98–100 | `24/host + 8/instance (min 1 instance/host)` ≈ **32/instance** |
+| IBM DB2 LUW | 101–103 | `34/host + 2/tablespace (min 1)` ≈ **36/host** |
+| MySQL remote monitoring | 104–105 | **31/host** flat, no sub-metrics |
+
+A blended "typical DB extension" figure across these four is **≈35–40 metrics/instance** at minimum
+defaults — reasonably close to (and cross-checks) the generic "Database hosts" constant used by the
+separate Custom Metrics sheet's network-device sub-table (**80 metrics/device**, `Custom
+Metrics!E19`), which is a coarser single-number stand-in for the same class of extension and runs
+on the high side because it isn't engine-specific.
 
 Citrix XenApp and SAP ABAP blocks also produce a side-output of RUM sessions (`RUMfromExtensions`
 named range) — these two are the only extensions that generate RUM; don't expect it from the

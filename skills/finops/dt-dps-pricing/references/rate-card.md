@@ -14,7 +14,7 @@ used downstream. At `selected_country` = US, `exchange_rate` = 1, so Z = Y exact
 | Kubernetes Platform Monitoring | pod-hours | $200 / 100,000 |
 | Container Application Monitoring | container-hours | $700 / 100,000 |
 | Code Monitoring | container-hours | $500 / 100,000 |
-| Database Monitoring | db-instance-hours | $1,100 / 10,000 |
+| Database Monitoring[^dbmon] | db-instance-hours | $1,100 / 10,000 |
 | Mainframe Monitoring | MSU-hours | $1,000 / 10,000 |
 | Log Mgmt - Ingest & Process | gibibytes | $2,000 / 10,000 |
 | Log Mgmt - Retain | gibibyte-days | $700 / 1,000,000 |
@@ -47,6 +47,18 @@ used downstream. At `selected_country` = US, `exchange_rate` = 1, so Z = Y exact
 | Custom Traces Classic (OpenTelemetry) | spans | $140 / 100,000,000 |
 | Custom Events Classic | custom events | $200 / 100,000,000 |
 | Serverless Functions Classic | invocations | $400 / 100,000,000 |
+
+[^dbmon]: **This line is not "the" database monitoring rate — it's one of two.** Per
+    [docs.dynatrace.com/docs/license/capabilities/app-infra-observability/database-monitoring](https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability/database-monitoring),
+    native Database Monitoring (this db-instance-hour line) currently only covers instances monitored
+    by the PostgreSQL or MySQL extension, and has no customer-facing polling-interval setting — it
+    bills continuous db-instance-hours regardless of poll cadence. Oracle, SQL Server/MSSQL, DB2 LUW,
+    SAP HANA, etc. aren't eligible for this line and are billed as ordinary custom metrics (Metrics -
+    Ingest & Process or Custom Metrics Classic rows below) through the classic OneAgent/ActiveGate
+    extension, which does have a configurable poll interval. A sizing summary that states an explicit
+    polling interval (e.g. "N instances, polled every 5 minutes") is describing the classic-extension
+    product, not this line — see `estimator-mechanics.md`'s Database Monitoring section for the full
+    decision rule and per-engine metric-count constants.
 
 ## DEM "with Insights" vs "without Insights" — a second rate tier most people miss
 
