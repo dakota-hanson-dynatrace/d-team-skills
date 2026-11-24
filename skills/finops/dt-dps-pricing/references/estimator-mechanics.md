@@ -126,6 +126,51 @@ figure (easy to transcribe only one and under-count):
 A single `isUseMetricsPoweredByGrail`-style toggle on this sheet routes the whole total to either
 **Metrics - Ingest & Process** (Grail) or **Custom Metrics Classic**.
 
+### Network devices / SNMP / circuit checks (Custom Metrics sheet, rows 10–28)
+
+This is the sheet's only generic network-device modeling — there's no device/circuit calculator on
+`Extensions` or `Extensions Quick Estimator`. Two separate sub-tables, confirmed by cell dump and
+named ranges (`network_device_count`, `Inputs_custom_metrics_extensions`, `Inputs_CustomMetrics_NAM`,
+`isUseMetricsPoweredByGrail`):
+
+- **Devices** (C13:C19, `network_device_count` = `D13`): device count × hardcoded "typical # of
+  metrics each" × `60 × 24 × 365`. Constants confirmed live in the workbook: Generic SNMP device
+  (`E13`) = **44**, Palo Alto (`E14`) = 131, Fortinet (`E15`) = 77, Checkpoint (`E16`) = 79, Cisco
+  Firepower (`E17`) = 122, F5 BIG-IP (`E18`) = 1,400, Database hosts (`E19`) = 80. For an
+  unspecified/mixed firewall-switch-router fleet, use the **Generic SNMP row (44 metrics/device)** —
+  it's the one named range (`network_device_count`) the workbook treats as *the* network-device
+  input. **No interval input exists for this sub-table** — the `×60×24×365` annualization is a fixed
+  constant baked into the formula (equivalent to one poll of all 44 metrics every single minute,
+  continuously); there's no cell to dial polling frequency up or down for this row.
+- **NAM / circuit checks** (C25:C27, `Inputs_CustomMetrics_NAM` = `D25:D27`): `# of executions per
+  hour × 8,760 × metrics/execution`, metrics/execution hardcoded as ICMP = 6, TCP = 3, DNS = 3. This
+  *is* interval-configurable — "executions/hour" is a raw aggregate across however many
+  circuits/checks you're sizing, so model N circuits at a chosen per-circuit cadence as
+  `N × executions-per-circuit-per-hour`. The template ships this input **blank** (no pre-filled
+  default), so "sheet default" isn't a real baseline here — size a sparse case and a realistic
+  production case explicitly and show both; don't default to the cheapest single number.
+- Both sub-tables feed `Custom Metrics!F20` (devices) and `F28` (NAM) into the same Custom Metrics
+  total, routed by the sheet's `isUseMetricsPoweredByGrail` toggle (`Custom Metrics!B3`) — ships
+  `TRUE` in the unmodified workbook, i.e. **Metrics - Ingest & Process** ($150/100M), not **Custom
+  Metrics Classic** ($200/100M). Check `B3` before assuming which rate-card line applies.
+
+**Worked example — 300 network devices + 100 circuit checks (generic SNMP + ICMP circuit
+monitoring):**
+
+| | Formula | Data points/yr |
+|---|---|---|
+| 300 devices | `300 × 44 × 60 × 24 × 365` | 6,937,920,000 |
+| 100 circuits, sparse (1 exec/hr each) | `(100×1) × 8,760 × 6` | 5,256,000 |
+| 100 circuits, 1-min cadence (60 exec/hr each) | `(100×60) × 8,760 × 6` | 315,360,000 |
+
+Devices dominate (≈96–99.9% of total volume) regardless of circuit-check cadence, because the
+device sub-table's fixed continuous-polling constant vastly outweighs 100 circuits even at an
+aggressive 1-minute interval — the circuit-check frequency choice barely moves the total. At
+$150/100,000,000 (Grail metrics, list) and 35% off:
+
+- Sparse circuits: 6,943,176,000 DPs/yr → 69.43 rate-card units → $10,415 list → **$6,770/yr net**
+- 1-min circuits: 7,253,280,000 DPs/yr → 72.53 rate-card units → $10,880 list → **$7,072/yr net**
+
 ## Extensions (detailed estimator)
 
 Per-technology custom-metric calculators: VMware, Citrix NetScaler/XenApp, F5 BIG-IP, IBM
