@@ -240,6 +240,71 @@ Citrix XenApp and SAP ABAP blocks also produce a side-output of RUM sessions (`R
 named range) — these two are the only extensions that generate RUM; don't expect it from the
 others.
 
+### F5 BIG-IP — flat constant vs. derivable per-interface/per-VIP breakdown (rows 36–45)
+
+The flat **Custom Metrics!E18 = 1,400 "typical metrics each" for F5 BIG-IP is a hardcoded literal**,
+confirmed by formula dump (`E18` has no formula, just the value `1400`) — it does not derive from
+anything else on that sheet. `Custom Metrics!G18` carries a "typical configuration" note alongside
+it: *"5 interfaces, Host Control plane, 100 URL, 50 workers, 30 pools"* — but this is a descriptive
+comment, not a formula input; changing interface/VIP count for a real deal does **not** auto-scale
+`E18`, and the note's own component counts don't cleanly reproduce 1,400 when run back through the
+detailed per-unit rates below (off by roughly 2x), so treat it as a rough illustrative label, not a
+derivation.
+
+A real, component-level breakdown **does** exist elsewhere in the same workbook — `Extensions!36:45`
+("F5 BIG-IP LTM" block) — with explicit per-unit metrics/minute rates (`I` column) and, for several
+rows, a default count (`J` column) used when the input is left blank:
+
+| Component | Rate (metrics/min/unit) | Default count if blank | Cell refs |
+|---|---|---|---|
+| Base (per device) | 18 | — (always counted) | `I36` |
+| Virtual Servers (VIPs) | 18 | none — required input | `I37` |
+| Pools | 10 | none — required input | `I38` |
+| Nodes (pool members) | 8 | none — required input | `I39` |
+| Rules (iRules) | 3 | 20 | `I40`/`J40` |
+| Profiles | 34 | 5 | `I41`/`J41` |
+| Network Interfaces | 9 | 5 | `I42`/`J42` |
+| Disks | 7 | 5 | `I43`/`J43` |
+| CPUs | 0 | 8 | `I44`/`J44` |
+
+Formula: `metrics/min/device = 18 + 9×interfaces + 18×VIPs + 10×pools + 8×nodes + 3×rules + 34×profiles + 7×disks`,
+then the usual `× 60 × 24 × 365` annualization (same continuous-polling convention as every other
+block on this sheet — no interval input here either).
+
+**Independent corroboration** (Dynatrace Hub, [F5 BIG-IP LTM extension
+page](https://www.dynatrace.com/hub/detail/f5-big-ip-ltm-1/), fetched 2026-11-24): the extension's
+documented metric feature sets line up closely with the workbook's per-unit rates — `f5-interface`
+feature set = **9 metrics** (matches `I42` exactly), virtual-server feature sets
+(virtualserver-advanced/connectivity-advanced/connectivity-basic/basic/syn-cookies) sum to **≈19
+metrics** (vs. `I37` = 18), pool feature sets sum to **≈11** (vs. `I38` = 10), node feature sets sum
+to **≈9** (vs. `I39` = 8). The page also confirms **"all interfaces on the device will be collected
+by default"** unless interface filters are configured — i.e. interface count genuinely drives metric
+volume linearly, supporting use of the per-interface rate for a device with an above-default
+interface count.
+
+**Worked example — 64 interfaces (BMC's stated floor), VIPs unspecified, sensitivity across 10/25/50,
+Rules/Profiles/Disks/CPUs held at sheet defaults, Pools/Nodes excluded (not specified — this is a
+floor, not a ceiling):**
+
+Fixed part (base 18 + rules 20×3=60 + profiles 5×34=170 + disks 5×7=35 + CPUs 8×0=0) = **283**/min.
+Interfaces: 64 × 9 = **576**/min. Fixed + interfaces = **859**/min before VIPs.
+
+| VIPs | metrics/min/device | DPs/yr/device (×525,600) | DPs/yr, 300 devices | Net $/yr (÷100M × $150 × 0.65) |
+|---|---|---|---|---|
+| 10 | 1,039 | 546,098,400 | 163,829,520,000 | **$159,734** |
+| 25 | 1,309 | 688,010,400 | 206,403,120,000 | **$201,243** |
+| 50 | 1,759 | 924,530,400 | 277,359,120,000 | **$270,425** |
+
+Notable finding: at 64 interfaces and a modest VIP count (10–25), this component-based figure is
+actually **lower** than the flat 1,400 constant (which nets ≈$215,233/yr for 300 devices) — because
+interfaces are a relatively cheap line item (9/unit) next to virtual servers (18/unit), and the flat
+1,400 already implicitly bakes in a large VIP-equivalent count. **Interface count alone is not the
+dominant lever for F5 sizing — VIP count is.** Also: Pools and Nodes are zeroed out above because
+BMC's VIP count wasn't given a pools/nodes ratio — if pools/nodes scale with VIP count (plausible:
+each VIP commonly backs one pool with multiple members), the real number is higher than this table
+shows for any given VIP count; that upside isn't quantified here because no pool/node count or ratio
+was provided — don't invent one.
+
 ## Extensions Quick Estimator
 
 A coarser alternative to the detailed Extensions sheet, covering the *same* set of technologies.
