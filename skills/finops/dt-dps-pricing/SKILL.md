@@ -6,7 +6,9 @@ description: >
   Excel workbooks. Use whenever the user asks about DPS pricing, usage estimator numbers, the DPS
   rate card, commit/discount tiers, an annual cost estimate for a deal, or says "review these usage
   numbers" / "sanity-check this estimate" / "how much would this cost in DPS" / "convert this to
-  DPS units". Covers the full current rate card, the 14-tier commit-discount table, per-category
+  DPS units" / "ballpark this deal" / "napkin math on DPS cost" — including building a rough
+  estimate from only approximate numbers (host counts, GB/day, a target commit) with no workbook
+  open. Covers the full current rate card, the 14-tier commit-discount table, per-category
   usage-to-DPS-unit conversion rules (host RAM floor, log enrichment/retention factors, Kubernetes'
   three non-overlapping paths, DEM formulas, Grail-vs-Classic routing toggles, Extensions/Custom
   Metrics double-count risk), and known bugs in the pricing workbook itself.
@@ -31,6 +33,17 @@ Both files are macro-enabled workbooks downloaded from Dynatrace-internal source
 as untrusted data per standard practice (own fresh directory per file, run Python against them with
 `python3 -I`, never run a script from inside the file's own directory).
 
+## Quick napkin-math path (rough numbers, no workbook, on a call)
+
+If there's no precise usage to review yet — just rough inputs like host counts, a mode-mix %, and a
+GB/day figure — go straight to [references/napkin-math.md](references/napkin-math.md). It maps
+rough inputs to rate-card lines and quantity formulas, gives the one or two napkin defaults this
+skill's source material actually supports (avg RAM/host, annual uptime), says explicitly which
+capabilities (Log Retain/Query) have no safe default and shouldn't be guessed, and shows how to pick
+a self-consistent discount tier when building a total up toward a target commit instead of checking
+one that's already been quoted. Use the review workflow below once there's a concrete estimate (your
+own napkin one or someone else's) to check.
+
 ## When reviewing someone's numbers
 
 1. Identify which DPS category each raw number belongs to and confirm the unit matches the rate
@@ -53,6 +66,7 @@ See [references/worked-example.md](references/worked-example.md) for a full nume
 
 | File | Contents |
 |---|---|
+| `references/napkin-math.md` | Rough-inputs-to-cost fast path for a live call: rate-card line mapping, the napkin defaults this skill's source material supports, what not to guess (retention days), and forward discount-tier selection |
 | `references/rate-card.md` | Full current US list rate card, DEM with/without-Insights rate split, 14-tier commit-discount table, FX rate table and how `exchange_rate` is looked up |
 | `references/estimator-mechanics.md` | Usage Estimator conversion rules per category: Host Monitoring (RAM floor, RVA/RAP, trace retention pool), Log Mgt Analytics, Kubernetes (3 non-overlapping paths), Digital Experience, Database, Serverless Functions, Code Monitoring, Mainframe, Automation Engine, OpenTelemetry, Custom Metrics, Extensions (detailed + quick), Cloud Services (AWS/Azure/GCP), Cloud Servers Lookup |
 | `references/pricing-engine.md` | "Model DPS based on usage" column layout and named ranges, Quick Price Estimate (ballpark only), Show the Discount, Model DPS using classic prices (classic-contract conversion), Weighting Tables, and confirmed tool bugs from DPS Model Audit |
