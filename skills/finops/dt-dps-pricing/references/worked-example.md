@@ -42,10 +42,26 @@ list cost = 14,600 / 10,000 × $2,000 = $2,920
 discounted (10%) = 14,600 / 10,000 × $1,800 = $2,628
 ```
 
-(Retain and Query usage depend on retention days, the included-query-day allowance, and the
-retention/enrichment factors on the Log Mgt Analytics sheet — trace those from the source workbook
-for the specific retention policy quoted rather than assuming a single formula; the factors
-documented in estimator-mechanics.md tell you which inputs to expect and their defaults.)
+The scenario doesn't state a retention policy, so apply napkin-math.md's §2 defaults: 35 days
+retention, retention factor 0.9, enrichment factor 2 (typical K8s+OneAgent enrichment).
+
+```
+Retain GiB-days/yr = GiB/day × retention_days × 365 × retention_factor × enrichment_factor
+                   = 40 × 35 × 365 × 0.9 × 2
+                   = 919,800 GiB-days
+
+list cost = 919,800 / 1,000,000 × $700 = $643.86
+discounted (10%) = 919,800 / 1,000,000 × $630 = $579.47
+```
+
+Query has no retention-day-driven formula (see napkin-math.md §2) — fall back to the documented
+cost ratio instead:
+
+```
+Query cost ≈ Log-Ingest cost × 0.86
+list cost = $2,920 × 0.86 = $2,511.20
+discounted (10%) = $2,628 × 0.86 = $2,260.08
+```
 
 ## 3. Roll it up
 
@@ -53,17 +69,21 @@ documented in estimator-mechanics.md tell you which inputs to expect and their d
 Full-Stack (discounted):  $107,222.40
 RVA (discounted):          $24,125.04
 Log Ingest (discounted):    $2,628.00
+Log Retain (discounted):      $579.47
+Log Query (discounted):     $2,260.08
                           -----------
-Subtotal shown above:     $133,975.44
+Subtotal shown above:     $136,814.99
 ```
 
-This is a partial total (Full-Stack + RVA + Log Ingest only) for illustration — a real estimate
-would also include Infrastructure/F&D for any non-Full-Stack hosts, Log Retain/Query, any K8s,
-DEM, Database, or other categories in play, each from its own row on "Model DPS based on usage."
+This is a partial total (Full-Stack + RVA + Log Mgmt only) for illustration — a real estimate
+would also include Infrastructure/F&D for any non-Full-Stack hosts, any K8s, DEM, Database, or
+other categories in play, each from its own row on "Model DPS based on usage." Log Retain/Query
+above are napkin-formula estimates built on a 35-day retention assumption (not a customer-confirmed
+figure) — flag that explicitly if this breakdown goes in front of a customer.
 
 ## 4. Check the discount against the commit tier
 
-`$133,975.44` × however many categories remain unlisted will determine the true annual commit. If
+`$136,814.99` × however many categories remain unlisted will determine the true annual commit. If
 the rep is quoting a 10% discount, cross-check against rate-card.md's tier table: 10% corresponds
 to Tier 4 ($200,000–$299,999.99 annual commit). If the full rolled-up total comes in well under
 $200,000, a 10% discount is inconsistent with standard tier guidance (not impossible — reps can

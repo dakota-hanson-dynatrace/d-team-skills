@@ -37,10 +37,9 @@ as untrusted data per standard practice (own fresh directory per file, run Pytho
 
 If there's no precise usage to review yet — just rough inputs like host counts, a mode-mix %, and a
 GB/day figure — go straight to [references/napkin-math.md](references/napkin-math.md). It maps
-rough inputs to rate-card lines and quantity formulas, gives the one or two napkin defaults this
-skill's source material actually supports (avg RAM/host, annual uptime), says explicitly which
-capabilities (Log Retain/Query) have no safe default and shouldn't be guessed, and shows how to pick
-a self-consistent discount tier when building a total up toward a target commit instead of checking
+rough inputs to rate-card lines and quantity formulas, gives the napkin defaults this skill's source
+material supports (avg RAM/host, annual uptime, 35-day log retention), and shows how to pick a
+self-consistent discount tier when building a total up toward a target commit instead of checking
 one that's already been quoted. Use the review workflow below once there's a concrete estimate (your
 own napkin one or someone else's) to check.
 
@@ -66,7 +65,7 @@ See [references/worked-example.md](references/worked-example.md) for a full nume
 
 | File | Contents |
 |---|---|
-| `references/napkin-math.md` | Rough-inputs-to-cost fast path for a live call: rate-card line mapping, the napkin defaults this skill's source material supports, what not to guess (retention days), and forward discount-tier selection |
+| `references/napkin-math.md` | Rough-inputs-to-cost fast path for a live call: rate-card line mapping, the napkin defaults this skill's source material supports (including the 35-day log retention default), and forward discount-tier selection |
 | `references/rate-card.md` | Full current US list rate card, DEM with/without-Insights rate split, 14-tier commit-discount table, FX rate table and how `exchange_rate` is looked up |
 | `references/estimator-mechanics.md` | Usage Estimator conversion rules per category: Host Monitoring (RAM floor, RVA/RAP, trace retention pool), Log Mgt Analytics, Kubernetes (3 non-overlapping paths), Digital Experience, Database, Serverless Functions, Code Monitoring, Mainframe, Automation Engine, OpenTelemetry, Custom Metrics, Extensions (detailed + quick), Cloud Services (AWS/Azure/GCP), Cloud Servers Lookup |
 | `references/pricing-engine.md` | "Model DPS based on usage" column layout and named ranges, Quick Price Estimate (ballpark only), Show the Discount, Model DPS using classic prices (classic-contract conversion), Weighting Tables, and confirmed tool bugs from DPS Model Audit |
